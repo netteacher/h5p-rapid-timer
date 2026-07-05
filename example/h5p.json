@@ -1,0 +1,10 @@
+{
+  "title": "Rapid Timer (Demo)",
+  "language": "de",
+  "mainLibrary": "H5P.RapidTimer",
+  "embedTypes": ["div"],
+  "license": "U",
+  "preloadedDependencies": [
+    { "machineName": "H5P.RapidTimer", "majorVersion": 1, "minorVersion": 4 }
+  ]
+}

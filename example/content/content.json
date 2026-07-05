@@ -1,0 +1,11 @@
+{
+  "timeLimit": 10,
+  "startMode": "click",
+  "warningAt": 3,
+  "showBar": true,
+  "onTimeout": "lock",
+  "timeoutMessage": "Zeit abgelaufen – du startest im Einsteiger-Pfad.",
+  "successMessage": "Stark! Du startest im Experten-Pfad.",
+  "startLabel": "Start – Aufgabe anzeigen",
+  "retryLabel": ""
+}

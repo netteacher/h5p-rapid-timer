@@ -1,0 +1,88 @@
+.h5p-rapid-timer { padding: 12px; font-family: sans-serif; }
+
+/* Kopf / Countdown */
+.h5p-rapid-timer .hrt-head {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+}
+.h5p-rapid-timer .hrt-digits {
+  font-size: 1.4em; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: #1f4e79; min-width: 3.2em;
+}
+.h5p-rapid-timer .hrt-bar {
+  flex: 1; height: 10px; background: #e3e9ee; border-radius: 99px; overflow: hidden;
+}
+.h5p-rapid-timer .hrt-bar-fill {
+  height: 100%; width: 100%; background: #1f4e79;
+  transition: width 1s linear;
+}
+.h5p-rapid-timer .hrt-warning .hrt-digits { color: #b3261e; }
+.h5p-rapid-timer .hrt-warning .hrt-bar-fill { background: #b3261e; }
+.h5p-rapid-timer .hrt-expired .hrt-digits { color: #b3261e; }
+
+/* Bühne + Sperr-Overlay */
+.h5p-rapid-timer .hrt-stage { position: relative; }
+.h5p-rapid-timer .hrt-hidden { display: none; }
+.h5p-rapid-timer .hrt-overlay {
+  display: none; position: absolute; inset: 0;
+  background: rgba(255,255,255,.55); cursor: not-allowed; z-index: 5;
+}
+.h5p-rapid-timer .hrt-overlay.hrt-active { display: block; }
+
+/* Status */
+.h5p-rapid-timer .hrt-status {
+  display: none; margin: 0 0 10px; padding: 10px 14px; border-radius: 8px;
+  font-weight: 600;
+}
+.h5p-rapid-timer .hrt-status.hrt-show { display: block; }
+.h5p-rapid-timer .hrt-status.hrt-success { background: #e9f5f3; color: #0f766e; border: 1px solid #bcded9; }
+.h5p-rapid-timer .hrt-status.hrt-fail { background: #fdecea; color: #b3261e; border: 1px solid #f2c4c0; }
+
+/* Buttons */
+.h5p-rapid-timer .hrt-btn {
+  display: inline-block; border: 0; border-radius: 8px; padding: 10px 18px;
+  font-size: 1em; font-weight: 600; cursor: pointer;
+  background: #1f4e79; color: #fff;
+}
+.h5p-rapid-timer .hrt-btn:hover { background: #163a5b; }
+.h5p-rapid-timer .hrt-retry { margin-top: 10px; background: #5b6b7a; }
+.h5p-rapid-timer .hrt-start { margin-bottom: 10px; }
+
+.h5p-rapid-timer .hrt-empty { color: #5b6b7a; font-style: italic; }
+
+/* Pfad-Links */
+.h5p-rapid-timer a.hrt-path {
+  margin-top: 12px; text-decoration: none; display: inline-block;
+}
+.h5p-rapid-timer a.hrt-path-expert { background: #0f766e; }
+.h5p-rapid-timer a.hrt-path-expert:hover { background: #0b5c56; }
+.h5p-rapid-timer a.hrt-path-novice { background: #b0700f; }
+.h5p-rapid-timer a.hrt-path-novice:hover { background: #8f5a0c; }
+.h5p-rapid-timer .hrt-redirect-note {
+  margin-top: 6px; font-size: .85em; color: #5b6b7a;
+}
+
+/* Sicherheitsabfrage (Kalibrierung) */
+.h5p-rapid-timer .hrt-confidence {
+  margin-bottom: 12px; padding: 14px 16px; border: 1px solid #c9d2da;
+  border-radius: 10px; background: #f6f8fa;
+}
+.h5p-rapid-timer .hrt-conf-q { margin: 0 0 10px; font-weight: 600; }
+.h5p-rapid-timer .hrt-conf-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.h5p-rapid-timer .hrt-conf-btn { flex: 1; min-width: 110px; }
+.h5p-rapid-timer .hrt-conf-high { background: #0f766e; }
+.h5p-rapid-timer .hrt-conf-high:hover { background: #0b5c56; }
+.h5p-rapid-timer .hrt-conf-mid { background: #b0700f; }
+.h5p-rapid-timer .hrt-conf-mid:hover { background: #8f5a0c; }
+.h5p-rapid-timer .hrt-conf-low { background: #5b6b7a; }
+.h5p-rapid-timer .hrt-conf-low:hover { background: #47545f; }
+
+/* Lösungs-Abdeckung während der Selbsteinschätzung */
+.h5p-rapid-timer .hrt-cover {
+  position: absolute; inset: 0; z-index: 6;
+  background: #f6f8fa;
+  border: 1px dashed #c9d2da; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.h5p-rapid-timer .hrt-cover-note {
+  color: #5b6b7a; font-weight: 600; padding: 12px; text-align: center;
+}

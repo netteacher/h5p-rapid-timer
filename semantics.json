@@ -1,0 +1,247 @@
+[
+  {
+    "name": "content",
+    "type": "library",
+    "label": "Eingebetteter H5P-Inhalt",
+    "description": "Der Inhalt, auf den das Zeitlimit angewendet wird. Es erscheinen nur Inhaltstypen, die auf der Plattform installiert sind (Version in semantics.json ggf. anpassen).",
+    "optional": true,
+    "options": [
+      "H5P.MultiChoice 1.16",
+      "H5P.TrueFalse 1.8",
+      "H5P.Blanks 1.14",
+      "H5P.SingleChoiceSet 1.11",
+      "H5P.MarkTheWords 1.11",
+      "H5P.DragText 1.10",
+      "H5P.Summary 1.10"
+    ]
+  },
+  {
+    "name": "timeLimit",
+    "type": "number",
+    "label": "Zeitlimit (Sekunden)",
+    "description": "Rapid Assessment nach Kalyuga: Richtwert 6–10 Sekunden.",
+    "default": 10,
+    "min": 3,
+    "max": 600
+  },
+  {
+    "name": "startMode",
+    "type": "select",
+    "label": "Start des Timers",
+    "description": "\"Per Klick\" gibt Orientierungszeit vor dem Messfenster – empfohlen bei längeren Aufgabentexten.",
+    "default": "click",
+    "options": [
+      {
+        "value": "immediate",
+        "label": "Sofort beim Laden"
+      },
+      {
+        "value": "click",
+        "label": "Per Klick auf Start-Button"
+      }
+    ]
+  },
+  {
+    "name": "warningAt",
+    "type": "number",
+    "label": "Warnung ab (verbleibende Sekunden)",
+    "description": "Countdown färbt sich rot. 0 = keine Warnung.",
+    "default": 3,
+    "min": 0,
+    "max": 60,
+    "optional": true
+  },
+  {
+    "name": "showBar",
+    "type": "boolean",
+    "label": "Fortschrittsbalken anzeigen",
+    "default": true,
+    "optional": true
+  },
+  {
+    "name": "onTimeout",
+    "type": "select",
+    "label": "Verhalten bei Zeitablauf",
+    "default": "lock",
+    "options": [
+      {
+        "value": "lock",
+        "label": "Aufgabe sperren (Novizen-Einstufung)"
+      },
+      {
+        "value": "notify",
+        "label": "Nur Hinweis anzeigen, weiter bearbeitbar"
+      }
+    ]
+  },
+  {
+    "name": "timeoutMessage",
+    "type": "text",
+    "label": "Meldung bei Zeitablauf",
+    "default": "Zeit abgelaufen – du startest im Einsteiger-Pfad.",
+    "optional": true
+  },
+  {
+    "name": "successMessage",
+    "type": "text",
+    "label": "Meldung bei richtiger Antwort innerhalb der Zeit",
+    "default": "Stark! Du startest im Experten-Pfad.",
+    "optional": true,
+    "description": "Wird nur gezeigt, wenn der eingebettete Inhalt eine volle Punktzahl innerhalb des Zeitlimits meldet."
+  },
+  {
+    "name": "confidence",
+    "type": "group",
+    "label": "Kalibrierung: Sicherheitsabfrage vor der Aufgabe",
+    "description": "Fragt VOR der Aufgabe ab, wie sicher sich die Person fühlt. Der Timer startet erst nach der Einschätzung – sie kostet also keine Bearbeitungszeit. Das Feedback kombiniert danach Selbsteinschätzung × Ergebnis.",
+    "expanded": false,
+    "fields": [
+      {
+        "name": "enabled",
+        "type": "boolean",
+        "label": "Sicherheitsabfrage aktivieren",
+        "default": false
+      },
+      {
+        "name": "timing",
+        "type": "select",
+        "label": "Zeitpunkt der Abfrage",
+        "description": "NACH der Antwort (empfohlen): Die Person schätzt ihre gegebene Lösung ein – wissenschaftlich am besten validiert, kein Vorwissen über die Aufgabe nötig. VOR der Aufgabe: Die Person schätzt ihr Können zum THEMA ein – dann muss die Frage unten das Thema nennen (z. B. 'Wie sicher fühlst du dich bei Prozentrechnung?').",
+        "default": "after",
+        "options": [
+          {
+            "value": "after",
+            "label": "Nach der Antwort – Lösung einschätzen (empfohlen)"
+          },
+          {
+            "value": "before",
+            "label": "Vor der Aufgabe – Thema einschätzen"
+          }
+        ]
+      },
+      {
+        "name": "question",
+        "type": "text",
+        "label": "Frage der Selbsteinschätzung",
+        "description": "Bei 'nach der Antwort' passt der Standardtext. Bei 'vor der Aufgabe' unbedingt das Thema benennen.",
+        "default": "Wie sicher bist du, dass deine Antwort richtig ist?",
+        "optional": true
+      },
+      {
+        "name": "coverText",
+        "type": "text",
+        "label": "Text auf der Abdeckung (nur bei 'nach der Antwort')",
+        "description": "Sobald geantwortet wurde, wird die Auflösung der Aufgabe verdeckt, bis die Einschätzung abgegeben ist – sonst klickt jeder 'Sicher'. Dieser Text steht auf der Abdeckung.",
+        "default": "Antwort erfasst – gleich siehst du die Lösung.",
+        "optional": true
+      },
+      {
+        "name": "fbConfCorrect",
+        "type": "text",
+        "label": "Feedback: SICHER eingeschätzt + RICHTIG gelöst",
+        "description": "Gute Kalibrierung – bestätigen.",
+        "default": "Einschätzung und Ergebnis passen zusammen – du kennst deinen Stand. Weiter im Expertenpfad.",
+        "optional": true
+      },
+      {
+        "name": "fbConfWrong",
+        "type": "text",
+        "label": "Feedback: SICHER eingeschätzt + FALSCH/Zeit abgelaufen",
+        "description": "Wichtigster Fall: Überschätzung/Fehlvorstellung ansprechen.",
+        "default": "Du warst sicher – die Lösung sagt etwas anderes. Genau hier steckt oft eine typische Fehlannahme. Der Einsteigerpfad räumt sie auf.",
+        "optional": true
+      },
+      {
+        "name": "fbUnsureCorrect",
+        "type": "text",
+        "label": "Feedback: UNSICHER eingeschätzt + RICHTIG gelöst",
+        "description": "Unterschätzung – ermutigen.",
+        "default": "Du kannst mehr, als du dir zutraust – das war richtig, und zwar in der Zeit. Trau dich in den Expertenpfad.",
+        "optional": true
+      },
+      {
+        "name": "fbUnsureWrong",
+        "type": "text",
+        "label": "Feedback: UNSICHER eingeschätzt + FALSCH/Zeit abgelaufen",
+        "description": "Realistische Einschätzung – Grundlagen anbieten.",
+        "default": "Deine Einschätzung war ehrlich und realistisch – eine gute Basis. Der Einsteigerpfad baut das Wissen Schritt für Schritt auf.",
+        "optional": true
+      }
+    ]
+  },
+  {
+    "name": "expertUrl",
+    "type": "text",
+    "label": "Ziel-Link Expertenpfad (URL)",
+    "description": "Erscheint bei richtiger Antwort innerhalb der Zeit. Z. B. Link zum ILIAS-Objekt oder Seitenanker des Expertenpfads.",
+    "optional": true,
+    "regexp": {
+      "pattern": "^(https?://|/|#).*",
+      "modifiers": "i"
+    }
+  },
+  {
+    "name": "expertLinkLabel",
+    "type": "text",
+    "label": "Beschriftung Experten-Link",
+    "default": "Weiter zum Expertenpfad →",
+    "optional": true
+  },
+  {
+    "name": "noviceUrl",
+    "type": "text",
+    "label": "Ziel-Link Novizenpfad (URL)",
+    "description": "Erscheint bei Zeitablauf ODER falscher Antwort.",
+    "optional": true,
+    "regexp": {
+      "pattern": "^(https?://|/|#).*",
+      "modifiers": "i"
+    }
+  },
+  {
+    "name": "noviceLinkLabel",
+    "type": "text",
+    "label": "Beschriftung Novizen-Link",
+    "default": "Weiter zum Einsteigerpfad →",
+    "optional": true
+  },
+  {
+    "name": "redirectMode",
+    "type": "select",
+    "label": "Weiterleitung",
+    "default": "link",
+    "options": [
+      {
+        "value": "link",
+        "label": "Klickbarer Link/Button (empfohlen)"
+      },
+      {
+        "value": "auto",
+        "label": "Automatisch nach Wartezeit"
+      }
+    ]
+  },
+  {
+    "name": "redirectDelay",
+    "type": "number",
+    "label": "Wartezeit vor automatischer Weiterleitung (Sekunden)",
+    "default": 4,
+    "min": 1,
+    "max": 60,
+    "optional": true
+  },
+  {
+    "name": "startLabel",
+    "type": "text",
+    "label": "Beschriftung Start-Button",
+    "default": "Start – Aufgabe anzeigen",
+    "optional": true
+  },
+  {
+    "name": "retryLabel",
+    "type": "text",
+    "label": "Beschriftung Neustart-Button (leer = kein Neustart möglich)",
+    "default": "",
+    "optional": true
+  }
+]

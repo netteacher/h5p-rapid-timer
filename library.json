@@ -1,0 +1,14 @@
+{
+  "title": "Rapid Timer",
+  "description": "Konfigurierbarer Zeitrahmen-Wrapper für beliebige H5P-Inhalte (Rapid Assessment nach Kalyuga).",
+  "machineName": "H5P.RapidTimer",
+  "majorVersion": 1,
+  "minorVersion": 4,
+  "patchVersion": 0,
+  "runnable": 1,
+  "author": "Jeff / Instructional Design",
+  "license": "MIT",
+  "coreApi": { "majorVersion": 1, "minorVersion": 24 },
+  "preloadedJs": [ { "path": "rapid-timer.js" } ],
+  "preloadedCss": [ { "path": "rapid-timer.css" } ]
+}
