@@ -1,247 +1,452 @@
 [
   {
-    "name": "content",
-    "type": "library",
-    "label": "Eingebetteter H5P-Inhalt",
-    "description": "Der Inhalt, auf den das Zeitlimit angewendet wird. Es erscheinen nur Inhaltstypen, die auf der Plattform installiert sind (Version in semantics.json ggf. anpassen).",
-    "optional": true,
-    "options": [
-      "H5P.MultiChoice 1.16",
-      "H5P.TrueFalse 1.8",
-      "H5P.Blanks 1.14",
-      "H5P.SingleChoiceSet 1.11",
-      "H5P.MarkTheWords 1.11",
-      "H5P.DragText 1.10",
-      "H5P.Summary 1.10"
-    ]
-  },
-  {
-    "name": "timeLimit",
-    "type": "number",
-    "label": "Zeitlimit (Sekunden)",
-    "description": "Rapid Assessment nach Kalyuga: Richtwert 6–10 Sekunden.",
-    "default": 10,
-    "min": 3,
-    "max": 600
-  },
-  {
-    "name": "startMode",
-    "type": "select",
-    "label": "Start des Timers",
-    "description": "\"Per Klick\" gibt Orientierungszeit vor dem Messfenster – empfohlen bei längeren Aufgabentexten.",
-    "default": "click",
-    "options": [
-      {
-        "value": "immediate",
-        "label": "Sofort beim Laden"
-      },
-      {
-        "value": "click",
-        "label": "Per Klick auf Start-Button"
-      }
-    ]
-  },
-  {
-    "name": "warningAt",
-    "type": "number",
-    "label": "Warnung ab (verbleibende Sekunden)",
-    "description": "Countdown färbt sich rot. 0 = keine Warnung.",
-    "default": 3,
-    "min": 0,
-    "max": 60,
-    "optional": true
-  },
-  {
-    "name": "showBar",
-    "type": "boolean",
-    "label": "Fortschrittsbalken anzeigen",
-    "default": true,
-    "optional": true
-  },
-  {
-    "name": "onTimeout",
-    "type": "select",
-    "label": "Verhalten bei Zeitablauf",
-    "default": "lock",
-    "options": [
-      {
-        "value": "lock",
-        "label": "Aufgabe sperren (Novizen-Einstufung)"
-      },
-      {
-        "value": "notify",
-        "label": "Nur Hinweis anzeigen, weiter bearbeitbar"
-      }
-    ]
-  },
-  {
-    "name": "timeoutMessage",
-    "type": "text",
-    "label": "Meldung bei Zeitablauf",
-    "default": "Zeit abgelaufen – du startest im Einsteiger-Pfad.",
-    "optional": true
-  },
-  {
-    "name": "successMessage",
-    "type": "text",
-    "label": "Meldung bei richtiger Antwort innerhalb der Zeit",
-    "default": "Stark! Du startest im Experten-Pfad.",
-    "optional": true,
-    "description": "Wird nur gezeigt, wenn der eingebettete Inhalt eine volle Punktzahl innerhalb des Zeitlimits meldet."
-  },
-  {
-    "name": "confidence",
+    "name": "intro",
     "type": "group",
-    "label": "Kalibrierung: Sicherheitsabfrage vor der Aufgabe",
-    "description": "Fragt VOR der Aufgabe ab, wie sicher sich die Person fühlt. Der Timer startet erst nach der Einschätzung – sie kostet also keine Bearbeitungszeit. Das Feedback kombiniert danach Selbsteinschätzung × Ergebnis.",
+    "label": "Schritt 1: Einführung (was Lernende vor dem Start lesen)",
+    "description": "Diese Seite sehen Lernende als Erstes. Sie erklärt, warum es ein Zeitlimit gibt und dass Scheitern kein Makel ist – das nimmt Testangst und macht die Diagnose zuverlässiger. Ein passender Standardtext ist bereits eingetragen; du kannst ihn einfach übernehmen oder anpassen.",
     "expanded": false,
     "fields": [
       {
         "name": "enabled",
         "type": "boolean",
-        "label": "Sicherheitsabfrage aktivieren",
+        "label": "Einführungsseite anzeigen (empfohlen: an)",
+        "default": true
+      },
+      {
+        "name": "text",
+        "type": "text",
+        "widget": "html",
+        "label": "Einführungstext (wird Lernenden vor dem Start-Button angezeigt)",
+        "enterMode": "p",
+        "tags": ["p", "strong", "em", "ul", "ol", "li", "br"],
+        "default": "<p><strong>So funktioniert dieser Schnelltest:</strong> Du bekommst mehrere kurze Aufgaben mit engem Zeitlimit. Das Zeitlimit ist Absicht – es prüft, ob du die Lösung sofort abrufen kannst. Wenn die Zeit nicht reicht oder etwas falsch ist, ist das kein Problem: Der Test führt dich danach genau zum passenden Lernmaterial.</p>",
+        "optional": true
+      }
+    ]
+  },
+  {
+    "name": "items",
+    "type": "list",
+    "label": "Schritt 2: Aufgaben-Serie – das Herzstück",
+    "description": "Hier legst du die Testfragen an. Über 'Aufgabe hinzufügen' ergänzt du weitere Fragen – sie laufen nacheinander ab, jede mit eigenem Countdown. WICHTIG: Eine einzelne Frage ist kaum aussagekräftig (Ratewahrscheinlichkeit!) – verwende 3 bis 7 Fragen zum selben Thema. Lernende sehen zwischen den Fragen bewusst KEIN richtig/falsch – die Auswertung kommt gesammelt am Ende.",
+    "entity": "Aufgabe",
+    "min": 1,
+    "max": 10,
+    "field": {
+      "name": "item",
+      "type": "group",
+      "label": "Aufgabe",
+      "fields": [
+        {
+          "name": "content",
+          "type": "library",
+          "label": "H5P-Inhalt (die eigentliche Frage)",
+          "description": "Wähle einen Fragetyp (z. B. Multiple Choice oder Richtig/Falsch) und fülle ihn aus. Tipp: kurze, fokussierte Fragen – lange Texte verfälschen die Zeitmessung.",
+          "optional": true,
+          "options": [
+            "H5P.MultiChoice 1.16",
+            "H5P.TrueFalse 1.8",
+            "H5P.Blanks 1.14",
+            "H5P.SingleChoiceSet 1.11",
+            "H5P.MarkTheWords 1.11",
+            "H5P.DragText 1.10",
+            "H5P.Summary 1.10"
+          ]
+        },
+        {
+          "name": "timeLimit",
+          "type": "number",
+          "label": "Zeitlimit für DIESE Frage (Sekunden)",
+          "description": "So lange läuft der Countdown für diese eine Frage. Richtwert: 6–10 Sekunden für reines Faktenwissen, bis 30 Sekunden für kurze Rechen-/Umformungsaufgaben. Das enge Limit ist Absicht: Es prüft, ob die Lösung sofort abrufbar ist.",
+          "default": 10,
+          "min": 3,
+          "max": 600
+        },
+        {
+          "name": "scoreThreshold",
+          "type": "number",
+          "label": "Ab wie viel Prozent gilt die Frage als richtig?",
+          "description": "Standard 100 = volle Punktzahl nötig. Beispiel: Eine Multiple-Choice-Frage mit 5 Punkten und Einstellung 80 gilt schon mit 4 Punkten als richtig. Bei einfachen Fragen (Richtig/Falsch) auf 100 lassen.",
+          "default": 100,
+          "min": 1,
+          "max": 100
+        },
+        {
+          "name": "explanation",
+          "type": "text",
+          "widget": "html",
+          "label": "Erklärung der richtigen Lösung (sehr empfohlen!)",
+          "description": "Erscheint in der Endauswertung. Schreibe 1–3 Sätze, WARUM die richtige Antwort richtig ist – nicht nur, WAS richtig ist. Besonders wertvoll: Wer sich sicher war und falsch lag, bekommt diese Erklärung automatisch aufgeklappt angezeigt – genau in diesem Moment lernen Menschen am nachhaltigsten (Hypercorrection-Effekt).",
+          "enterMode": "p",
+          "tags": ["p", "strong", "em", "ul", "ol", "li", "br"],
+          "optional": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "practice",
+    "type": "group",
+    "label": "Optional: Übungsfrage zum Warmwerden (zählt nicht)",
+    "description": "Eine Probefrage VOR dem eigentlichen Test, damit Lernende das Zeitformat einmal erleben, bevor es zählt. Empfohlen bei Zielgruppen, die Zeitdruck-Formate nicht kennen. Das Ergebnis fließt NICHT in die Einstufung ein.",
+    "expanded": false,
+    "fields": [
+      {
+        "name": "enabled",
+        "type": "boolean",
+        "label": "Übungsfrage aktivieren",
+        "default": false
+      },
+      {
+        "name": "content",
+        "type": "library",
+        "label": "H5P-Inhalt der Übungsfrage",
+        "optional": true,
+        "options": [
+          "H5P.MultiChoice 1.16",
+          "H5P.TrueFalse 1.8",
+          "H5P.Blanks 1.14",
+          "H5P.SingleChoiceSet 1.11",
+          "H5P.MarkTheWords 1.11",
+          "H5P.DragText 1.10",
+          "H5P.Summary 1.10"
+        ]
+      },
+      {
+        "name": "timeLimit",
+        "type": "number",
+        "label": "Zeitlimit (Sekunden)",
+        "default": 10,
+        "min": 3,
+        "max": 600
+      }
+    ]
+  },
+  {
+    "name": "timing",
+    "type": "group",
+    "label": "Schritt 3: Zeit & Ablauf (wie der Test abläuft)",
+    "description": "Steuert Start, Übergänge und das Verhalten bei Zeitablauf. Die Voreinstellungen sind für die meisten Fälle richtig – du musst hier nichts ändern.",
+    "expanded": true,
+    "fields": [
+      {
+        "name": "startMode",
+        "type": "select",
+        "label": "Wie startet der Test?",
+        "description": "'Per Klick' (empfohlen): Lernende lesen erst in Ruhe die Einführung und starten selbst – der Countdown läuft erst ab Klick. 'Bei Sichtbarkeit': Der Test startet automatisch, sobald er ins Bild scrollt – nur für Spezialfälle.",
+        "default": "click",
+        "options": [
+          { "value": "immediate", "label": "Bei Sichtbarkeit im Viewport" },
+          { "value": "click", "label": "Per Klick auf Start-Button" }
+        ]
+      },
+      {
+        "name": "advanceMode",
+        "type": "select",
+        "label": "Wie geht es nach jeder Frage weiter?",
+        "description": "'Per Klick' (empfohlen): Nach jeder Frage erscheint ein Weiter-Button – Lernende bestimmen das Tempo zwischen den Fragen. 'Automatisch': Die nächste Frage startet nach 2 Sekunden von selbst. In beiden Fällen gilt: Die nächste Frage wird erst sichtbar, wenn ihr Countdown läuft – niemand kann vorab lesen.",
+        "default": "click",
+        "options": [
+          { "value": "click", "label": "Per Klick auf Weiter-Button (empfohlen)" },
+          { "value": "auto", "label": "Automatisch nach 2 Sekunden" }
+        ]
+      },
+      {
+        "name": "warningAt",
+        "type": "number",
+        "label": "Rote Warnung ab wie vielen Restsekunden?",
+        "description": "Beispiel 3: In den letzten 3 Sekunden färbt sich der Countdown rot, pulsiert und zeigt ein Uhr-Symbol. 0 = keine Warnung.",
+        "default": 3,
+        "min": 0,
+        "max": 60,
+        "optional": true
+      },
+      {
+        "name": "showBar",
+        "type": "boolean",
+        "label": "Zeitbalken anzeigen (läuft sichtbar ab)",
+        "default": true,
+        "optional": true
+      },
+      {
+        "name": "onTimeout",
+        "type": "select",
+        "label": "Was passiert, wenn die Zeit abläuft?",
+        "description": "'Sperren' (empfohlen): Die Frage wird gesperrt, zählt als falsch, der Test geht zur nächsten Frage – das ist die eigentliche Diagnose-Logik. 'Nur Hinweis': Lernende können weiterarbeiten, die Frage zählt trotzdem als falsch.",
+        "default": "lock",
+        "options": [
+          { "value": "lock", "label": "Aufgabe sperren (zählt als falsch, empfohlen)" },
+          { "value": "notify", "label": "Nur Hinweis anzeigen, weiter bearbeitbar" }
+        ]
+      },
+      {
+        "name": "timeFactor",
+        "type": "number",
+        "label": "Zeitfaktor für Nachteilsausgleich (Standard: 1.0 = aus)",
+        "description": "Verlängert ALLE Zeitlimits um denselben Faktor. Beispiel: 1.5 macht aus 10 Sekunden 15 Sekunden. Gedacht für eine separate, barrierefreie Kopie des Inhalts (z. B. für Lernende mit Leseschwäche) – nicht als generelle Entschärfung. Bei 1.0 passiert nichts.",
+        "default": 1,
+        "min": 1,
+        "max": 3,
+        "decimals": 1,
+        "optional": true
+      }
+    ]
+  },
+  {
+    "name": "confidence",
+    "type": "group",
+    "label": "Optional: Selbsteinschätzung ('Wie sicher bist du?')",
+    "description": "Wenn aktiviert, wählen Lernende nach jeder Antwort eine von drei Stufen: Sicher / Teils-teils / Unsicher. Die Abfrage kostet KEINE Bearbeitungszeit (der Countdown ist dann schon gestoppt). In der Endauswertung gibt es dazu passendes Feedback – z. B. wird 'ich war sicher, lag aber falsch' gezielt angesprochen. Alle Feedbacktexte sind vorbefüllt und können übernommen werden.",
+    "expanded": false,
+    "fields": [
+      {
+        "name": "enabled",
+        "type": "boolean",
+        "label": "Selbsteinschätzung aktivieren",
         "default": false
       },
       {
         "name": "timing",
         "type": "select",
-        "label": "Zeitpunkt der Abfrage",
-        "description": "NACH der Antwort (empfohlen): Die Person schätzt ihre gegebene Lösung ein – wissenschaftlich am besten validiert, kein Vorwissen über die Aufgabe nötig. VOR der Aufgabe: Die Person schätzt ihr Können zum THEMA ein – dann muss die Frage unten das Thema nennen (z. B. 'Wie sicher fühlst du dich bei Prozentrechnung?').",
+        "label": "Wann wird gefragt?",
+        "description": "'Nach der Antwort' (empfohlen): Lernende schätzen ihre gerade gegebene Lösung ein – die Auflösung bleibt so lange verdeckt, damit niemand einfach nachschaut. 'Vor der Aufgabe': Lernende schätzen ihr Können zum Thema ein, bevor sie die Frage sehen – dann sollte deine Frage unten das Thema nennen (z. B. 'Wie sicher fühlst du dich bei Prozentrechnung?').",
         "default": "after",
         "options": [
-          {
-            "value": "after",
-            "label": "Nach der Antwort – Lösung einschätzen (empfohlen)"
-          },
-          {
-            "value": "before",
-            "label": "Vor der Aufgabe – Thema einschätzen"
-          }
+          { "value": "after", "label": "Nach der Antwort – Lösung einschätzen (empfohlen)" },
+          { "value": "before", "label": "Vor der Aufgabe – Thema einschätzen" }
         ]
       },
       {
         "name": "question",
         "type": "text",
-        "label": "Frage der Selbsteinschätzung",
-        "description": "Bei 'nach der Antwort' passt der Standardtext. Bei 'vor der Aufgabe' unbedingt das Thema benennen.",
+        "label": "Frage, die Lernende sehen",
         "default": "Wie sicher bist du, dass deine Antwort richtig ist?",
         "optional": true
       },
       {
         "name": "coverText",
         "type": "text",
-        "label": "Text auf der Abdeckung (nur bei 'nach der Antwort')",
-        "description": "Sobald geantwortet wurde, wird die Auflösung der Aufgabe verdeckt, bis die Einschätzung abgegeben ist – sonst klickt jeder 'Sicher'. Dieser Text steht auf der Abdeckung.",
-        "default": "Antwort erfasst – gleich siehst du die Lösung.",
+        "label": "Text auf der Abdeckung der Lösung",
+        "description": "Nur relevant bei 'Nach der Antwort': Während der Selbsteinschätzung ist die Auflösung der Frage verdeckt (sonst würde jeder erst nachschauen und dann 'Sicher' klicken). Dieser Text steht auf der Abdeckung.",
+        "default": "Antwort erfasst – gleich geht es weiter.",
         "optional": true
       },
       {
         "name": "fbConfCorrect",
         "type": "text",
-        "label": "Feedback: SICHER eingeschätzt + RICHTIG gelöst",
-        "description": "Gute Kalibrierung – bestätigen.",
-        "default": "Einschätzung und Ergebnis passen zusammen – du kennst deinen Stand. Weiter im Expertenpfad.",
+        "label": "Feedback für: 'Sicher' gewählt UND richtig geantwortet",
+        "description": "Erscheint in der Endauswertung bei der jeweiligen Frage. Gute Selbsteinschätzung – hier bestätigen.",
+        "default": "Einschätzung und Ergebnis passen zusammen – du kennst deinen Stand.",
         "optional": true
       },
       {
         "name": "fbConfWrong",
         "type": "text",
-        "label": "Feedback: SICHER eingeschätzt + FALSCH/Zeit abgelaufen",
-        "description": "Wichtigster Fall: Überschätzung/Fehlvorstellung ansprechen.",
-        "default": "Du warst sicher – die Lösung sagt etwas anderes. Genau hier steckt oft eine typische Fehlannahme. Der Einsteigerpfad räumt sie auf.",
+        "label": "Feedback für: 'Sicher' gewählt, ABER falsch geantwortet",
+        "description": "Der wichtigste Fall! Hier steckt meist eine echte Fehlvorstellung. Diese Fälle stehen in der Endauswertung ganz oben, rot markiert, mit automatisch aufgeklappter Erklärung.",
+        "default": "Du warst sicher – die Lösung sagt etwas anderes. Genau hier steckt oft eine typische Fehlannahme. Lies die Erklärung besonders aufmerksam.",
+        "optional": true
+      },
+      {
+        "name": "fbMidCorrect",
+        "type": "text",
+        "label": "Feedback für: 'Teils-teils' gewählt UND richtig geantwortet",
+        "description": "Wissen ist da, aber noch wacklig – zum Festigen ermutigen.",
+        "default": "Richtig gelöst, aber noch mit Restzweifel. Das Wissen ist da – es braucht noch Festigung, dann sitzt es sicher.",
+        "optional": true
+      },
+      {
+        "name": "fbMidWrong",
+        "type": "text",
+        "label": "Feedback für: 'Teils-teils' gewählt, ABER falsch geantwortet",
+        "description": "Halbwissen – auf die Erklärung und den fehlenden Baustein verweisen.",
+        "default": "Dein Zweifel war berechtigt – hier fehlt noch ein Baustein. Die Erklärung zeigt dir, welcher.",
         "optional": true
       },
       {
         "name": "fbUnsureCorrect",
         "type": "text",
-        "label": "Feedback: UNSICHER eingeschätzt + RICHTIG gelöst",
-        "description": "Unterschätzung – ermutigen.",
-        "default": "Du kannst mehr, als du dir zutraust – das war richtig, und zwar in der Zeit. Trau dich in den Expertenpfad.",
+        "label": "Feedback für: 'Unsicher' gewählt, ABER richtig geantwortet",
+        "description": "Unterschätzung – ermutigen, das Können ist größer als das Zutrauen.",
+        "default": "Du kannst mehr, als du dir zutraust – das war richtig, und zwar in der Zeit.",
         "optional": true
       },
       {
         "name": "fbUnsureWrong",
         "type": "text",
-        "label": "Feedback: UNSICHER eingeschätzt + FALSCH/Zeit abgelaufen",
-        "description": "Realistische Einschätzung – Grundlagen anbieten.",
-        "default": "Deine Einschätzung war ehrlich und realistisch – eine gute Basis. Der Einsteigerpfad baut das Wissen Schritt für Schritt auf.",
+        "label": "Feedback für: 'Unsicher' gewählt UND falsch geantwortet",
+        "description": "Ehrliche, realistische Einschätzung – wertschätzen und Grundlagen anbieten.",
+        "default": "Deine Einschätzung war ehrlich und realistisch – eine gute Basis, um das Wissen Schritt für Schritt aufzubauen.",
         "optional": true
       }
     ]
   },
   {
-    "name": "expertUrl",
-    "type": "text",
-    "label": "Ziel-Link Expertenpfad (URL)",
-    "description": "Erscheint bei richtiger Antwort innerhalb der Zeit. Z. B. Link zum ILIAS-Objekt oder Seitenanker des Expertenpfads.",
-    "optional": true,
-    "regexp": {
-      "pattern": "^(https?://|/|#).*",
-      "modifiers": "i"
-    }
-  },
-  {
-    "name": "expertLinkLabel",
-    "type": "text",
-    "label": "Beschriftung Experten-Link",
-    "default": "Weiter zum Expertenpfad →",
-    "optional": true
-  },
-  {
-    "name": "noviceUrl",
-    "type": "text",
-    "label": "Ziel-Link Novizenpfad (URL)",
-    "description": "Erscheint bei Zeitablauf ODER falscher Antwort.",
-    "optional": true,
-    "regexp": {
-      "pattern": "^(https?://|/|#).*",
-      "modifiers": "i"
-    }
-  },
-  {
-    "name": "noviceLinkLabel",
-    "type": "text",
-    "label": "Beschriftung Novizen-Link",
-    "default": "Weiter zum Einsteigerpfad →",
-    "optional": true
-  },
-  {
-    "name": "redirectMode",
-    "type": "select",
-    "label": "Weiterleitung",
-    "default": "link",
-    "options": [
+    "name": "classification",
+    "type": "group",
+    "label": "Schritt 4: Einstufung – ab wann gilt jemand als Experte?",
+    "description": "Gezählt wird der Anteil der Fragen, die richtig UND innerhalb der Zeit gelöst wurden. Beispiel mit 5 Fragen und Standardwerten (80/40): 4–5 richtig = Experte, 2–3 richtig = Fortgeschritten, 0–1 richtig = Einsteiger. Hinweis: Der Fortgeschrittenen-Pfad greift nur, wenn du unten bei 'Lernpfade' eine URL dafür einträgst – sonst gibt es nur Experte/Einsteiger.",
+    "expanded": false,
+    "fields": [
       {
-        "value": "link",
-        "label": "Klickbarer Link/Button (empfohlen)"
+        "name": "expertMin",
+        "type": "number",
+        "label": "Experte ab … Prozent richtig (Standard: 80)",
+        "default": 80,
+        "min": 1,
+        "max": 100
       },
       {
-        "value": "auto",
-        "label": "Automatisch nach Wartezeit"
+        "name": "intermediateMin",
+        "type": "number",
+        "label": "Fortgeschritten ab … Prozent richtig (Standard: 40)",
+        "default": 40,
+        "min": 0,
+        "max": 100
       }
     ]
   },
   {
-    "name": "redirectDelay",
-    "type": "number",
-    "label": "Wartezeit vor automatischer Weiterleitung (Sekunden)",
-    "default": 4,
-    "min": 1,
-    "max": 60,
-    "optional": true
+    "name": "paths",
+    "type": "group",
+    "label": "Schritt 5: Lernpfade – wohin geht es nach dem Test?",
+    "description": "Trage für jede Einstufung einen Ziel-Link ein (z. B. auf ein Kapitel im Kurs). Am Ende der Auswertung sehen Lernende genau EINEN Button – passend zu ihrer Einstufung. Leere URL = kein Button für diese Stufe. Es funktionieren volle Links (https://…), kursinterne Links (/goto.php?target=…) und Anker (#kapitel2).",
+    "expanded": false,
+    "fields": [
+      {
+        "name": "expertUrl",
+        "type": "text",
+        "label": "Experten-Link: Ziel-URL (z. B. weiterführendes Kapitel)",
+        "optional": true,
+        "regexp": { "pattern": "^(https?://|/|#).*", "modifiers": "i" }
+      },
+      {
+        "name": "expertLabel",
+        "type": "text",
+        "label": "Experten-Link: Button-Text",
+        "default": "Weiter zum Expertenpfad →",
+        "optional": true
+      },
+      {
+        "name": "intermediateUrl",
+        "type": "text",
+        "label": "Fortgeschrittenen-Link: Ziel-URL (leer lassen = nur 2 Pfade)",
+        "optional": true,
+        "regexp": { "pattern": "^(https?://|/|#).*", "modifiers": "i" }
+      },
+      {
+        "name": "intermediateLabel",
+        "type": "text",
+        "label": "Fortgeschrittenen-Link: Button-Text",
+        "default": "Weiter zum Aufbaupfad →",
+        "optional": true
+      },
+      {
+        "name": "noviceUrl",
+        "type": "text",
+        "label": "Einsteiger-Link: Ziel-URL (z. B. Grundlagen-Kapitel)",
+        "optional": true,
+        "regexp": { "pattern": "^(https?://|/|#).*", "modifiers": "i" }
+      },
+      {
+        "name": "noviceLabel",
+        "type": "text",
+        "label": "Einsteiger-Link: Button-Text",
+        "default": "Weiter zum Einsteigerpfad →",
+        "optional": true
+      },
+      {
+        "name": "redirectMode",
+        "type": "select",
+        "label": "Wie kommen Lernende zum Ziel?",
+        "description": "'Klickbarer Button' (empfohlen): Lernende lesen erst die Auswertung und klicken dann selbst. 'Automatisch': Nach der Wartezeit wird die Seite von selbst weitergeleitet – Achtung, dann bleibt wenig Zeit für die Auswertung.",
+        "default": "link",
+        "options": [
+          { "value": "link", "label": "Klickbarer Link/Button (empfohlen)" },
+          { "value": "auto", "label": "Automatisch nach Wartezeit" }
+        ]
+      },
+      {
+        "name": "redirectDelay",
+        "type": "number",
+        "label": "Wartezeit vor automatischer Weiterleitung (Sekunden, nur bei 'Automatisch')",
+        "default": 4,
+        "min": 1,
+        "max": 60,
+        "optional": true
+      }
+    ]
   },
   {
-    "name": "startLabel",
-    "type": "text",
-    "label": "Beschriftung Start-Button",
-    "default": "Start – Aufgabe anzeigen",
-    "optional": true
-  },
-  {
-    "name": "retryLabel",
-    "type": "text",
-    "label": "Beschriftung Neustart-Button (leer = kein Neustart möglich)",
-    "default": "",
-    "optional": true
+    "name": "behaviour",
+    "type": "group",
+    "label": "Optional: Verhalten & Texte anpassen",
+    "description": "Alle Button-Texte und Meldungen sind vorbefüllt – hier musst du nur etwas ändern, wenn du eigene Formulierungen möchtest.",
+    "expanded": false,
+    "fields": [
+      {
+        "name": "lockAfterCompletion",
+        "type": "boolean",
+        "label": "Test nach Abschluss sperren (empfohlen: an)",
+        "description": "An: Der Test kann nur EINMAL durchlaufen werden – auch nach Neuladen der Seite erscheint nur die Auswertung. So bleibt die Einstufung aussagekräftig. Aus: Beliebig viele Durchläufe möglich – nur sinnvoll, wenn der Test reines Übungsmaterial ist.",
+        "default": true
+      },
+      {
+        "name": "startLabel",
+        "type": "text",
+        "label": "Text auf dem Start-Button",
+        "default": "Start – erste Aufgabe anzeigen",
+        "optional": true
+      },
+      {
+        "name": "nextLabel",
+        "type": "text",
+        "label": "Text auf dem Weiter-Button (zwischen den Fragen)",
+        "default": "Weiter zur nächsten Aufgabe",
+        "optional": true
+      },
+      {
+        "name": "progressLabel",
+        "type": "text",
+        "label": "Fortschrittsanzeige über dem Timer (@current/@total = Nummer/Gesamtzahl)",
+        "default": "Aufgabe @current von @total",
+        "optional": true
+      },
+      {
+        "name": "timeoutMessage",
+        "type": "text",
+        "label": "Meldung, wenn die Zeit einer Frage abläuft",
+        "default": "Zeit abgelaufen – weiter geht's mit der nächsten Aufgabe.",
+        "optional": true
+      },
+      {
+        "name": "summaryTitle",
+        "type": "text",
+        "label": "Überschrift der Auswertungsseite am Ende",
+        "default": "Deine Auswertung",
+        "optional": true
+      },
+      {
+        "name": "expertMessage",
+        "type": "text",
+        "label": "Auswertungstext bei Einstufung 'Experte'",
+        "default": "Stark! Du hast das Wissen sicher und schnell abgerufen – der Expertenpfad ist der richtige für dich.",
+        "optional": true
+      },
+      {
+        "name": "intermediateMessage",
+        "type": "text",
+        "label": "Auswertungstext bei Einstufung 'Fortgeschritten'",
+        "default": "Solide Basis mit Lücken – der Aufbaupfad schließt sie gezielt.",
+        "optional": true
+      },
+      {
+        "name": "noviceMessage",
+        "type": "text",
+        "label": "Auswertungstext bei Einstufung 'Einsteiger'",
+        "default": "Der Einsteigerpfad baut das Wissen Schritt für Schritt auf – genau dafür ist er da.",
+        "optional": true
+      }
+    ]
   }
 ]

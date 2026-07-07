@@ -1,11 +1,40 @@
 {
-  "timeLimit": 10,
-  "startMode": "click",
-  "warningAt": 3,
-  "showBar": true,
-  "onTimeout": "lock",
-  "timeoutMessage": "Zeit abgelaufen – du startest im Einsteiger-Pfad.",
-  "successMessage": "Stark! Du startest im Experten-Pfad.",
-  "startLabel": "Start – Aufgabe anzeigen",
-  "retryLabel": ""
+  "intro": {
+    "enabled": true,
+    "text": "<p><strong>So funktioniert dieser Schnelltest:</strong> Du bekommst mehrere kurze Aufgaben mit engem Zeitlimit. Das Zeitlimit ist Absicht – es prüft, ob du die Lösung sofort abrufen kannst. Wenn die Zeit nicht reicht oder etwas falsch ist, ist das kein Problem: Der Test führt dich danach genau zum passenden Lernmaterial.</p>"
+  },
+  "items": [
+    {
+      "timeLimit": 10,
+      "scoreThreshold": 100,
+      "explanation": "<p>Hier steht die Erklärung, WARUM die richtige Antwort richtig ist.</p>"
+    }
+  ],
+  "practice": {
+    "enabled": false
+  },
+  "timing": {
+    "startMode": "click",
+    "advanceMode": "click",
+    "warningAt": 3,
+    "showBar": true,
+    "onTimeout": "lock",
+    "timeFactor": 1
+  },
+  "confidence": {
+    "enabled": true,
+    "timing": "after"
+  },
+  "classification": {
+    "expertMin": 80,
+    "intermediateMin": 40
+  },
+  "paths": {
+    "redirectMode": "link",
+    "redirectDelay": 4
+  },
+  "behaviour": {
+    "lockAfterCompletion": true,
+    "startLabel": "Start – erste Aufgabe anzeigen"
+  }
 }

@@ -5,6 +5,6 @@
   "embedTypes": ["div"],
   "license": "U",
   "preloadedDependencies": [
-    { "machineName": "H5P.RapidTimer", "majorVersion": 1, "minorVersion": 4 }
+    { "machineName": "H5P.RapidTimer", "majorVersion": 2, "minorVersion": 0 }
   ]
 }

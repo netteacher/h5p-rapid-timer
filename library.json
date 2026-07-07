@@ -1,9 +1,9 @@
 {
   "title": "Rapid Timer",
-  "description": "Konfigurierbarer Zeitrahmen-Wrapper für beliebige H5P-Inhalte (Rapid Assessment nach Kalyuga).",
+  "description": "Rapid-Assessment-Serie nach Kalyuga: mehrere H5P-Aufgaben mit engem Zeitfenster, 3-Stufen-Konfidenz und adaptiver Pfad-Weiterleitung (Novize/Fortgeschritten/Experte).",
   "machineName": "H5P.RapidTimer",
-  "majorVersion": 1,
-  "minorVersion": 4,
+  "majorVersion": 2,
+  "minorVersion": 0,
   "patchVersion": 0,
   "runnable": 1,
   "author": "Jeff / Instructional Design",
