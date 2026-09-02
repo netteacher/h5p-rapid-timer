@@ -1,0 +1,38 @@
+name: Build LUCID (macOS AU/VST3)
+
+on:
+  push:
+    paths: ['lucid-synth/**', '.github/workflows/build-lucid.yml']
+  workflow_dispatch:
+
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S lucid-synth -B build -DCMAKE_BUILD_TYPE=Release -DLUCID_COPY_PLUGIN=OFF
+
+      - name: Build
+        run: cmake --build build --config Release -j 3
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: AU validation
+        run: |
+          mkdir -p ~/Library/Audio/Plug-Ins/Components
+          cp -R build/LucidSynth_artefacts/Release/AU/LUCID.component ~/Library/Audio/Plug-Ins/Components/
+          killall -9 AudioComponentRegistrar 2>/dev/null || true
+          auval -v aumu Lcd1 Lcda
+
+      - name: Package
+        run: |
+          cd build/LucidSynth_artefacts/Release
+          zip -r ../../../LUCID-macOS.zip AU/LUCID.component VST3/LUCID.vst3 Standalone/LUCID.app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LUCID-macOS
+          path: LUCID-macOS.zip

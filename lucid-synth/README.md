@@ -69,11 +69,24 @@ Zusätzlich entstehen **VST3** (Ableton, Cubase, Bitwig, Reaper …) und eine **
 
 ## Build für Logic Pro (macOS)
 
-Voraussetzungen: Xcode (Command Line Tools reichen), CMake ≥ 3.22, Internetverbindung (JUCE wird
-beim ersten Konfigurieren automatisch geladen).
+**Weg A – fertiges Plug-in herunterladen (kein Compiler nötig):**
+Jeder Push baut LUCID automatisch per GitHub Actions auf einem macOS-Runner. Im Repository unter
+*Actions → „Build LUCID (macOS AU/VST3)“ → letzter Lauf → Artifacts → `LUCID-macOS.zip`*
+herunterladen, entpacken und `LUCID.component` nach `~/Library/Audio/Plug-Ins/Components/` kopieren.
+Weil der Download nicht notarisiert ist, einmalig die Quarantäne entfernen:
+```bash
+xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/LUCID.component
+```
+
+**Weg B – selbst bauen:** Voraussetzungen: Xcode Command Line Tools (`xcode-select --install`),
+CMake (`brew install cmake`), Internetverbindung (JUCE wird beim ersten Konfigurieren geladen).
 
 ```bash
 cd lucid-synth
+./build-mac.sh --validate      # baut AU/VST3/Standalone, installiert sie und startet auval
+```
+oder manuell:
+```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release -j
 ```
