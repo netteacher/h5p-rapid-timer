@@ -1,4 +1,13 @@
-# LUCID — Wavetable-Synthesizer für Logic Pro (AU) und VST3
+# LUCID — Wavetable-Synthesizer und PULSE Groove-Engine für Logic Pro (AU) und VST3
+
+Dieses Projekt enthält drei Plug-ins aus einem Guss:
+
+| Plug-in | Typ in Logic | Was es tut |
+|---|---|---|
+| **LUCID** | AU Instrument | Wavetable-/Virtual-Analog-Synthesizer (siehe unten) |
+| **LUCID Pulse** | AU Instrument | Polyrhythmische Drum-Machine: 8-Spur-Sequencer + synthetisierte Drums + Drum-Bus |
+| **LUCID Pulse MIDI** | AU MIDI-Effekt | Derselbe Sequencer als MIDI-Effekt: treibt jedes Instrument in Logic an (LUCID, Drum Kit Designer, Sampler …) |
+
 
 LUCID ist ein polyphoner Software-Synthesizer in C++/JUCE. Ziel: **ultra-klare Sounds** durch
 durchgehend alias-freie Synthese, Zero-Delay-Feedback-Filter, oversampelte Sättigung und eine
@@ -122,6 +131,42 @@ libfreetype-dev libfontconfig1-dev libgl1-mesa-dev libcurl4-openssl-dev` benöti
 
 ---
 
+## LUCID PULSE – polyrhythmische Groove-Engine
+
+![PULSE](screenshots/pulse-main.png)
+
+**Konzept:** 8 Spuren (Kick, Snare, Clap, Cl Hat, Op Hat, Perc, Rim, Noise). Jede Spur hat ihren
+eigenen Zähler, dadurch entstehen Grooves, die sich über mehrere Takte verschieben und nie
+statisch klingen – das Herz von Minimal, Dub Techno und modernem House.
+
+- **Polymeter:** eigene Schrittzahl (1–32) und eigene Auflösung (1/4 … 1/32T) pro Spur.
+  Eine 7-Schritt-Spur auf 1/16 gegen eine 16er-Kick verschiebt sich jeden Takt.
+- **Polyrhythm:** N Schritte werden gleichmäßig über 1, 2 oder 4 Takte gestreckt – echte 5:4,
+  7:8 oder 9:16-Rhythmen, sample-genau zum Host-Tempo.
+- **EUC (Euklid):** Hits/Rotation erzeugen die Spur nach dem Bjorklund-Algorithmus, live drehbar.
+- **Step-Zustände:** Klick = Step, Shift = Akzent, Alt = Ghost (leise), Cmd/Ctrl = „Maybe“
+  (Wahrscheinlichkeit), Rechtsklick = löschen. Ziehen malt.
+- **Groove pro Spur:** Probability, Swing, Nudge (±30 ms), Ratchet (2/3-fach-Wiederholungen),
+  Gate, Velocity, Accent, MIDI-Note/-Kanal.
+- **Global:** Swing (MPC-Stil, 100 % = 75 %), Humanize Timing/Velocity, Density (macht Maybe-Steps
+  dichter oder dünner), **Fill** (alles spielt, Ratchets an), 4 Patterns A–D (automatisierbar),
+  Run, Host Sync (läuft mit dem Logic-Transport, folgt Loops und Positionssprüngen).
+- **Generate:** Style-Generator für Minimal Techno, Deep House, Dub Techno, Polyrhythm 5:4/7:8,
+  Broken/UK und Afro 12/8 – jeder Klick eine neue, musikalisch sinnvolle Variante.
+- **Sound (nur Pulse-Instrument):** Pro Spur Level, Pan, Tune, Decay, Tone und drei
+  voice-spezifische Regler (Kick: Punch/Click/Drive, Snare: Snap/Body/Noise, Hats: Metal/Sizzle/Cut,
+  Clap: Spread/Tail/Bright, Noise: Color/Sweep/Res …). Hat-Choke-Gruppe, Drum-Bus mit Drive,
+  Kompressor und Limiter. MIDI-Noten 36–43 spielen die 8 Spuren von der Tastatur.
+- **Presets:** Minimal 128, Deep House, Dub Techno, Polyrhythm 5:4, Broken UK, Afro 12/8 – jeweils
+  mit vier Pattern-Variationen.
+
+**In Logic verwenden**
+1. *Drum-Machine:* Software-Instrument-Spur → Instrument-Slot → AU Instrumente → Lucid Audio → **LUCID Pulse**. Play drücken, Pulse läuft im Takt.
+2. *Als Sequencer für andere Instrumente:* Auf einer Software-Instrument-Spur (z. B. mit LUCID oder Drum Kit Designer) den **MIDI-Effekt-Slot** über dem Instrument öffnen → Audio Units → Lucid Audio → **LUCID Pulse MIDI**. Die MIDI-Noten pro Spur stehen im Inspector (Standard: GM-Drum-Map 36/38/39/42/46/47/37/49).
+3. Pattern-Wechsel A–D per Automation des Parameters „Pattern“, Fill per Automation oder Controller.
+
+---
+
 ## Bedienung
 
 ```
@@ -171,8 +216,14 @@ Source/
   PluginProcessor.* JUCE-Prozessor: sample-genaues MIDI, Effekte, Zustands-Speicherung, UI-Feeds
   PluginEditor.*  Layout (1180×780, skaliert)
   ui/             LookAndFeel, Displays (Wavetable, Filter+Analyzer, Env, LFO, Scope), Panels
+Pulse/
+  dsp/Sequencer.h Polyrhythmischer Sequencer-Kern + Euklid + Style-Generator (JUCE-frei)
+  dsp/DrumKit.h   8 synthetisierte Drum-Voices
+  Pulse*.cpp      Parameter, Prozessor (Instrument / MIDI-Effekt per PULSE_MIDI_ONLY), Editor
 tests/
   dsp_tests.cpp   35 Offline-Checks (Aliasing, Filterstabilität, Hüllkurven-Timing, Voicing, FX, Mod)
+  pulse_tests.cpp Sequencer-Timing (sample-genau), Swing, Polyrhythmik, Euklid, Drum-Voices, Demo-Render
+  plugin_tests.cpp / pulse_plugin_tests.cpp  Headless-Tests über die echten AudioProcessor-Klassen
 ```
 
 Der Audio-Thread liest alle Parameter lock-frei aus dem APVTS in einen `SynthParams`-Snapshot,

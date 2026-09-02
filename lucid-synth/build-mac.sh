@@ -21,13 +21,17 @@ cmake --build build --config Release -j "$(sysctl -n hw.ncpu)"
 
 echo
 echo "Fertig. Installiert nach:"
-echo "  ~/Library/Audio/Plug-Ins/Components/LUCID.component   (Logic Pro)"
-echo "  ~/Library/Audio/Plug-Ins/VST3/LUCID.vst3"
-echo "  build/LucidSynth_artefacts/Release/Standalone/LUCID.app"
+echo "  ~/Library/Audio/Plug-Ins/Components/LUCID.component             (Synth, Logic: AU Instrumente)"
+echo "  ~/Library/Audio/Plug-Ins/Components/LUCID Pulse.component       (Drum-Machine, Logic: AU Instrumente)"
+echo "  ~/Library/Audio/Plug-Ins/Components/LUCID Pulse MIDI.component  (Sequencer, Logic: MIDI-Effekte)"
+echo "  ~/Library/Audio/Plug-Ins/VST3/*.vst3"
+echo "  build/*_artefacts/Release/Standalone/*.app"
 
 if [[ "${1:-}" == "--validate" ]]; then
     echo; echo "==> AU-Validierung ..."
-    auval -v aumu Lcd1 Lcda
+    auval -v aumu Lcd1 Lcda | tail -2
+    auval -v aumu Lpu1 Lcda | tail -2
+    auval -v aumi Lpm1 Lcda | tail -2
 fi
 echo
 echo "Logic Pro neu starten. Falls LUCID nicht erscheint: Logic Pro > Einstellungen > Plug-in-Manager > 'Zurücksetzen & erneut scannen'."

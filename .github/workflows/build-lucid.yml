@@ -27,14 +27,21 @@ jobs:
         run: |
           mkdir -p ~/Library/Audio/Plug-Ins/Components
           cp -R build/LucidSynth_artefacts/Release/AU/LUCID.component ~/Library/Audio/Plug-Ins/Components/
+          cp -R "build/LucidPulse_artefacts/Release/AU/LUCID Pulse.component" ~/Library/Audio/Plug-Ins/Components/
+          cp -R "build/LucidPulseMidi_artefacts/Release/AU/LUCID Pulse MIDI.component" ~/Library/Audio/Plug-Ins/Components/
           killall -9 AudioComponentRegistrar 2>/dev/null || true
           auval -v aumu Lcd1 Lcda
+          auval -v aumu Lpu1 Lcda
+          auval -v aumi Lpm1 Lcda
 
       - name: Package
         run: |
-          cd build/LucidSynth_artefacts/Release
-          cp "$GITHUB_WORKSPACE/lucid-synth/install-mac.sh" .
-          zip -r ../../../LUCID-macOS.zip AU/LUCID.component VST3/LUCID.vst3 Standalone/LUCID.app install-mac.sh
+          mkdir -p pkg/AU pkg/VST3 pkg/Standalone
+          cp -R build/LucidSynth_artefacts/Release/AU/LUCID.component "build/LucidPulse_artefacts/Release/AU/LUCID Pulse.component" "build/LucidPulseMidi_artefacts/Release/AU/LUCID Pulse MIDI.component" pkg/AU/
+          cp -R build/LucidSynth_artefacts/Release/VST3/LUCID.vst3 "build/LucidPulse_artefacts/Release/VST3/LUCID Pulse.vst3" "build/LucidPulseMidi_artefacts/Release/VST3/LUCID Pulse MIDI.vst3" pkg/VST3/
+          cp -R build/LucidSynth_artefacts/Release/Standalone/LUCID.app "build/LucidPulse_artefacts/Release/Standalone/LUCID Pulse.app" pkg/Standalone/
+          cp lucid-synth/install-mac.sh pkg/
+          cd pkg && zip -r ../LUCID-macOS.zip . && cd ..
 
       - uses: actions/upload-artifact@v4
         with:
@@ -52,4 +59,4 @@ jobs:
               --title "LUCID – aktueller macOS-Build" \
               --notes "Automatischer Build (AU für Logic Pro, VST3, Standalone). Nach dem Entpacken: xattr -dr com.apple.quarantine LUCID.component"
           gh release upload lucid-latest LUCID-macOS.zip "LUCID-macOS-build${{ github.run_number }}.zip" --clobber
-          gh release edit lucid-latest --notes "Automatischer Build ${{ github.run_number }} von Commit ${{ github.sha }} (AU für Logic Pro, VST3, Standalone, Universal Binary). Nach dem Entpacken einmalig: xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/LUCID.component"
+          gh release edit lucid-latest --notes "Automatischer Build ${{ github.run_number }} von Commit ${{ github.sha }}. Enthält LUCID (Synth), LUCID Pulse (Drum-Machine) und LUCID Pulse MIDI (Sequencer als MIDI-Effekt) als AU für Logic Pro, VST3 und Standalone, Universal Binary. Installation: Zip entpacken, dann im Terminal:  bash ~/Downloads/LUCID-macOS/install-mac.sh"
