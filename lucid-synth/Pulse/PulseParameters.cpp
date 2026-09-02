@@ -29,7 +29,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout createPulseLayout()
     auto addC = [&] (const juce::String& id, const juce::String& name, const juce::StringArray& c, int def) { layout.add (std::make_unique<APC> (pid (id), name, c, def)); };
 
     addB ("run", "Run", true);
+    // The MIDI-FX build defaults to free-running (host sync off): in some hosts a MIDI-effect slot
+    // doesn't reliably hand the plug-in a working play head (unlike an instrument slot), which would
+    // otherwise leave a host-synced sequencer silently silent forever. Free-running means it's
+    // audible/visible immediately after being inserted; Host Sync can still be switched on by hand
+    // once the user has confirmed their host cooperates.
+#ifdef PULSE_MIDI_ONLY
+    addB ("hostSync", "Host Sync", false);
+#else
     addB ("hostSync", "Host Sync", true);
+#endif
     addF ("swing", "Swing", Range (0.0f, 1.0f, 0.001f), 0.12f, fmtPct);
     addF ("humTime", "Humanize Time", Range (0.0f, 1.0f, 0.001f), 0.1f, fmtPct);
     addF ("humVel", "Humanize Velocity", Range (0.0f, 1.0f, 0.001f), 0.15f, fmtPct);

@@ -45,12 +45,46 @@ int main()
         juce::String msg = juce::String (proc.getProgramName (pi)) + (PulseProcessor::isMidiOnlyBuild() ? juce::String::formatted ("  (%d note-ons in ~13 bars)", noteOns) : juce::String::formatted ("  (rms %.3f, peak %.2f)", rms, peak));
         if (PulseProcessor::isMidiOnlyBuild()) CHECK (noteOns > 100, msg); else CHECK (finite && rms > 0.01 && peak <= 1.0f, msg);
     }
-    // host stopped + host sync -> silence / no notes
+    // host stopped + host sync explicitly on -> silence / no notes. (Host Sync defaults ON for the
+    // instrument build and OFF for the MIDI-FX build - see PulseParameters.cpp - so force it on here
+    // to test the behaviour itself rather than either build's default.)
     {
+        if (auto* hs = proc.apvts.getParameter ("hostSync")) hs->setValueNotifyingHost (1.0f);
         head.playing = false; int ons = 0; double e = 0;
         for (int b = 0; b < 100; ++b) { juce::AudioBuffer<float> buf (PulseProcessor::isMidiOnlyBuild() ? 0 : 2, 512); juce::MidiBuffer midi; buf.clear(); proc.processBlock (buf, midi); for (const auto m : midi) ons += m.getMessage().isNoteOn(); if (buf.getNumChannels() > 0) for (int i = 0; i < 512; ++i) e += std::fabs (buf.getSample (0, i)); }
         CHECK (ons == 0, "no new notes while the host is stopped (host sync)");
         head.playing = true;
+    }
+    // The instrument build renders the sequencer's notes as audio (no MIDI output is expected from
+    // it), the MIDI-FX build emits them as MIDI note-ons - measure whichever applies.
+    auto sequencerIsActive = [&] () -> bool
+    {
+        int ons = 0; float peak = 0.0f;
+        for (int b = 0; b < 40; ++b)
+        {
+            juce::AudioBuffer<float> buf (PulseProcessor::isMidiOnlyBuild() ? 0 : 2, 512); juce::MidiBuffer midi; buf.clear();
+            proc.processBlock (buf, midi);
+            for (const auto m : midi) ons += m.getMessage().isNoteOn();
+            if (buf.getNumChannels() > 0) { const float* d = buf.getReadPointer (0); for (int i = 0; i < 512; ++i) peak = std::max (peak, std::fabs (d[i])); }
+        }
+        return PulseProcessor::isMidiOnlyBuild() ? ons > 0 : peak > 0.01f;
+    };
+    // free-running fallback: with Host Sync off (the MIDI-FX build's default), the sequencer keeps
+    // generating notes even while the host reports "not playing" or "not moving".
+    {
+        if (auto* hs = proc.apvts.getParameter ("hostSync")) hs->setValueNotifyingHost (0.0f);
+        head.playing = false;
+        CHECK (sequencerIsActive(), "with Host Sync off, the sequencer free-runs even while the host reports stopped");
+        head.playing = true;
+    }
+    // some hosts don't hand a MIDI-effect plug-in a working play head at all - confirmed this no
+    // longer means "silent forever" even with Host Sync switched on.
+    {
+        if (auto* hs = proc.apvts.getParameter ("hostSync")) hs->setValueNotifyingHost (1.0f);
+        proc.setPlayHead (nullptr);
+        CHECK (sequencerIsActive(), "falls back to the free-running clock when the host provides no play head at all");
+        proc.setPlayHead (&head);
+        if (auto* hs = proc.apvts.getParameter ("hostSync")) hs->setValueNotifyingHost (0.0f);
     }
     // state round trip incl. pattern data
     {

@@ -153,17 +153,23 @@ void PulseProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiB
     syncPatternToSequencer();
 
     // ---- transport
-    double bpm = 120.0, hostBeat = 0.0; bool playing = false;
+    double bpm = 120.0, hostBeat = 0.0; bool playing = false, hasHostPosition = false;
     if (auto* ph = getPlayHead())
         if (auto pos = ph->getPosition())
         {
+            hasHostPosition = true;
             if (auto b = pos->getBpm()) { bpm = juce::jlimit (20.0, 400.0, *b); lastKnownBpm.store (bpm); }
             if (auto p = pos->getPpqPosition()) hostBeat = *p;
             playing = pos->getIsPlaying();
             if (auto ts = pos->getTimeSignature()) g.beatsPerBar = juce::jlimit (1, 16, ts->numerator * 4 / juce::jmax (1, ts->denominator));
         }
     const bool standalone = wrapperType == wrapperType_Standalone;
-    const bool useHost = hostSync && ! standalone;
+    // Some hosts don't give a MIDI-effect plug-in a working play head at all (this is a known
+    // inconsistency across DAWs for MIDI-FX slots specifically, unlike instrument/audio slots).
+    // Rather than silently sitting dead forever waiting for a transport signal that never arrives,
+    // fall back to the free-running internal clock whenever the host can't actually supply one -
+    // "hostSync" only takes effect once we've confirmed the host is cooperating.
+    const bool useHost = hostSync && ! standalone && hasHostPosition;
     const bool active = run && (! useHost || playing);
     seq.setGlobal (g);
     seq.setRunning (active);
