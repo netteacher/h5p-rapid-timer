@@ -70,9 +70,10 @@ Zusätzlich entstehen **VST3** (Ableton, Cubase, Bitwig, Reaper …) und eine **
 ## Build für Logic Pro (macOS)
 
 **Weg A – fertiges Plug-in herunterladen (kein Compiler nötig):**
-Jeder Push baut LUCID automatisch per GitHub Actions auf einem macOS-Runner. Im Repository unter
-*Actions → „Build LUCID (macOS AU/VST3)“ → letzter Lauf → Artifacts → `LUCID-macOS.zip`*
-herunterladen, entpacken und `LUCID.component` nach `~/Library/Audio/Plug-Ins/Components/` kopieren.
+Jeder Push baut LUCID automatisch per GitHub Actions auf einem macOS-Runner und veröffentlicht das
+Ergebnis als Release **„lucid-latest“**: https://github.com/netteacher/h5p-rapid-timer/releases/tag/lucid-latest
+Dort `LUCID-macOS.zip` laden (ohne Login möglich), entpacken und `LUCID.component` nach
+`~/Library/Audio/Plug-Ins/Components/` kopieren.
 Weil der Download nicht notarisiert ist, einmalig die Quarantäne entfernen:
 ```bash
 xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/LUCID.component

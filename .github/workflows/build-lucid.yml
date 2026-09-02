@@ -5,6 +5,9 @@ on:
     paths: ['lucid-synth/**', '.github/workflows/build-lucid.yml']
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   macos:
     runs-on: macos-14
@@ -36,3 +39,16 @@ jobs:
         with:
           name: LUCID-macOS
           path: LUCID-macOS.zip
+
+      # Public, login-free download: a rolling pre-release "lucid-latest" always carries the newest build
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp LUCID-macOS.zip "LUCID-macOS-build${{ github.run_number }}.zip"
+          gh release view lucid-latest >/dev/null 2>&1 || \
+            gh release create lucid-latest --prerelease --target "${{ github.sha }}" \
+              --title "LUCID – aktueller macOS-Build" \
+              --notes "Automatischer Build (AU für Logic Pro, VST3, Standalone). Nach dem Entpacken: xattr -dr com.apple.quarantine LUCID.component"
+          gh release upload lucid-latest LUCID-macOS.zip "LUCID-macOS-build${{ github.run_number }}.zip" --clobber
+          gh release edit lucid-latest --notes "Automatischer Build ${{ github.run_number }} von Commit ${{ github.sha }} (AU für Logic Pro, VST3, Standalone, Universal Binary). Nach dem Entpacken einmalig: xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/LUCID.component"
