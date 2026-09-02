@@ -64,6 +64,33 @@ int main()
         CHECK (proc.getStep (0, 2, 5) == 2 && proc.getStep (1, 7, 31) == 4, "step data restored from state");
         CHECK (std::fabs (sw->convertFrom0to1 (sw->getValue()) - 0.42f) < 0.001f, "swing restored from state");
     }
+    // drag-to-DAW MIDI export: renders deterministically, produces a valid, non-empty file
+    {
+        proc.loadPreset (0);
+        auto file = proc.renderPatternToMidiFile (0, 2, 126.0);
+        juce::MidiFile mf; bool parsed = false;
+        { juce::FileInputStream in (file); if (in.openedOk()) parsed = mf.readFrom (in); }
+        int notes = 0, tsEvents = 0;
+        for (int t = 0; t < mf.getNumTracks(); ++t)
+        {
+            auto* trk = mf.getTrack (t);
+            for (int i = 0; i < trk->getNumEvents(); ++i)
+            {
+                const auto& m = trk->getEventPointer (i)->message;
+                if (m.isNoteOn()) ++notes;
+                if (m.isTimeSignatureMetaEvent()) ++tsEvents;
+            }
+        }
+        CHECK (file.existsAsFile() && parsed && notes > 0, juce::String ("MIDI export produced a valid file with ") + juce::String (notes) + " notes");
+        CHECK (tsEvents > 0, "MIDI export includes a time signature meta event");
+        // rendering the same pattern twice must give the same note count (deterministic, WYSIWYG)
+        auto file2 = proc.renderPatternToMidiFile (0, 2, 126.0);
+        juce::MidiFile mf2; { juce::FileInputStream in2 (file2); if (in2.openedOk()) mf2.readFrom (in2); }
+        int notes2 = 0;
+        for (int t = 0; t < mf2.getNumTracks(); ++t) { auto* trk = mf2.getTrack (t); for (int i = 0; i < trk->getNumEvents(); ++i) if (trk->getEventPointer (i)->message.isNoteOn()) ++notes2; }
+        CHECK (notes == notes2, "MIDI export is deterministic (same note count on repeat render)");
+        file.deleteFile(); file2.deleteFile();
+    }
     std::printf ("\n%d checks, %d failures\n", checks, failures);
     return failures == 0 ? 0 : 1;
 }

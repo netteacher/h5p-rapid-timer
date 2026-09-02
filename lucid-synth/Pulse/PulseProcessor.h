@@ -52,12 +52,19 @@ public:
     int currentPatternIndex() const { return currentPattern.load(); }
     std::array<uint8_t, kMaxSteps> displaySteps (int lane) const;   // effective (grid or Euclid) for the current pattern
 
+    // Renders `bars` bars of the given pattern (its current lane settings, swing, gate, ratchets
+    // etc.) to a standard MIDI file using the same deterministic sequencer core that plays it live,
+    // so a dragged-out file always matches what you hear. Used for drag-and-drop export into the
+    // host DAW. Safe to call from the message thread; does not touch the live playing sequencer.
+    juce::File renderPatternToMidiFile (int patternIndex, int bars, double bpm) const;
+
     // ---- UI feeds
     std::atomic<int> currentStep[kNumLanes] {};
     std::atomic<int> laneFlash[kNumLanes] {};
     std::atomic<float> peakL { 0.0f }, peakR { 0.0f };
     std::atomic<double> displayBeat { 0.0 };
     std::atomic<bool> transportRunning { false };
+    std::atomic<double> lastKnownBpm { 120.0 };
     std::function<void()> onPresetChanged;
 
     juce::AudioProcessorValueTreeState apvts;

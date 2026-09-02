@@ -69,6 +69,77 @@ std::array<uint8_t, kMaxSteps> PulseProcessor::displaySteps (int lane) const
     return out;
 }
 
+juce::File PulseProcessor::renderPatternToMidiFile (int patternIndex, int bars, double bpm) const
+{
+    patternIndex = juce::jlimit (0, kNumPatterns - 1, patternIndex);
+    bars = juce::jlimit (1, 32, bars);
+    bpm = juce::jlimit (20.0, 400.0, bpm);
+
+    // A private, freshly-prepared sequencer so this never disturbs the live playing one. Given the
+    // same pattern/lane/global settings and the fixed default RNG seed the engine always starts
+    // with, replaying from beat 0 reproduces exactly the notes you'd hear (probability, ratchets
+    // and swing included) - "drag out what you hear".
+    Sequencer local;
+    local.prepare (48000.0f);
+    GlobalParams g; bool run, hostSync; int pat; float m, bd, bt; bool bc, bl;
+    cache.fillGlobal (g, run, hostSync, pat, m, bd, bc, bt, bl);
+    local.setGlobal (g);
+
+    Pattern p;
+    for (int l = 0; l < kNumLanes; ++l)
+        for (int i = 0; i < kMaxSteps; ++i)
+            p.steps[(size_t) l][(size_t) i] = steps[(size_t) patternIndex][(size_t) l][(size_t) i].load (std::memory_order_relaxed);
+    local.setPattern (p);
+
+    std::array<LaneParams, kNumLanes> lps;
+    for (int l = 0; l < kNumLanes; ++l) { VoiceParams vp; cache.fillLane (l, lps[(size_t) l], vp); local.setLaneParams (l, lps[(size_t) l]); }
+    local.setRunning (true);
+
+    constexpr int kTicksPerQuarter = 960;
+    const double beatsTotal = (double) bars * (double) g.beatsPerBar;
+    const double samplesPerBeat = 48000.0 * 60.0 / bpm;
+    const int block = 256;
+    double beat = 0.0;
+    std::vector<SeqEvent> ev;
+    juce::MidiMessageSequence track;
+    while (beat < beatsTotal)
+    {
+        local.process (true, beat, bpm, block, ev);
+        for (const auto& e : ev)
+        {
+            const double eventBeat = beat + (double) e.sampleOffset / samplesPerBeat;
+            if (eventBeat >= beatsTotal) continue;
+            const double ticks = eventBeat * (double) kTicksPerQuarter;
+            track.addEvent (e.noteOn ? juce::MidiMessage::noteOn (e.channel, e.note, e.velocity)
+                                      : juce::MidiMessage::noteOff (e.channel, e.note), ticks);
+        }
+        beat += (double) block / samplesPerBeat;
+    }
+    track.updateMatchedPairs();
+    track.sort();
+    track.addEvent (juce::MidiMessage::endOfTrack(), beatsTotal * (double) kTicksPerQuarter);
+
+    juce::MidiMessageSequence tempoTrack;
+    tempoTrack.addEvent (juce::MidiMessage::tempoMetaEvent ((int) (60000000.0 / bpm)), 0.0);
+    tempoTrack.addEvent (juce::MidiMessage::timeSignatureMetaEvent (g.beatsPerBar, 4), 0.0);
+    tempoTrack.addEvent (juce::MidiMessage::endOfTrack(), 0.0);
+
+    juce::MidiFile midiFile;
+    midiFile.setTicksPerQuarterNote (kTicksPerQuarter);
+    midiFile.addTrack (tempoTrack);
+    midiFile.addTrack (track);
+
+    auto dir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("LUCID Pulse");
+    dir.createDirectory();
+    const juce::String fname = juce::File::createLegalFileName (presetName + " " + juce::String::charToString ((juce::juce_wchar) ('A' + patternIndex)) + " " + juce::String (bars) + "bars") + ".mid";
+    auto file = dir.getChildFile (fname);
+    file.deleteFile();
+    if (auto stream = std::unique_ptr<juce::FileOutputStream> (new juce::FileOutputStream (file)))
+        if (stream->openedOk())
+            midiFile.writeTo (*stream);
+    return file;
+}
+
 void PulseProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
@@ -86,7 +157,7 @@ void PulseProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiB
     if (auto* ph = getPlayHead())
         if (auto pos = ph->getPosition())
         {
-            if (auto b = pos->getBpm()) bpm = juce::jlimit (20.0, 400.0, *b);
+            if (auto b = pos->getBpm()) { bpm = juce::jlimit (20.0, 400.0, *b); lastKnownBpm.store (bpm); }
             if (auto p = pos->getPpqPosition()) hostBeat = *p;
             playing = pos->getIsPlaying();
             if (auto ts = pos->getTimeSignature()) g.beatsPerBar = juce::jlimit (1, 16, ts->numerator * 4 / juce::jmax (1, ts->denominator));

@@ -8,8 +8,90 @@ static const Colour laneColours[kNumLanes] = { colours::accent, colours::accentB
 static const Colour stateColours[5] = { Colour (0x00000000), Colour (0xffe9ecf1), Colour (0xffffb347), Colour (0xff6b7488), Colour (0xff45d0ff) };
 
 // ============================================================================ StepGrid
-StepGrid::StepGrid (PulseProcessor& p) : proc (p) {}
-void StepGrid::refresh() { repaint(); }
+StepGrid::StepGrid (PulseProcessor& p) : proc (p)
+{
+    for (auto& s : lastPlayStep) s = -1;
+    setOpaque (true);
+}
+
+uint64_t StepGrid::computeHash() const
+{
+    uint64_t h = 1469598103934665603ull; // FNV-1a offset basis; sequential mixing already encodes position
+    auto mix = [&h] (uint64_t v) { h ^= v; h *= 1099511628211ull; };
+    mix ((uint64_t) selectedLane + 1);
+    for (int l = 0; l < kNumLanes; ++l)
+    {
+        const auto stepsArr = proc.displaySteps (l);
+        const int numSteps = roundToInt (proc.apvts.getRawParameterValue (ids::lane (l, "steps"))->load());
+        const bool euclid = proc.apvts.getRawParameterValue (ids::lane (l, "euclid"))->load() >= 0.5f;
+        const bool on = proc.apvts.getRawParameterValue (ids::lane (l, "on"))->load() >= 0.5f;
+        mix ((uint64_t) numSteps * 4u + (euclid ? 2u : 0u) + (on ? 1u : 0u) + 7u);
+        for (int i = 0; i < kMaxSteps; ++i) mix ((uint64_t) stepsArr[(size_t) i] + 3u);
+    }
+    return h;
+}
+
+void StepGrid::rebuildBackground()
+{
+    const int w = jmax (1, getWidth()), h = jmax (1, getHeight());
+    background = Image (Image::ARGB, w, h, true);
+    Graphics g (background);
+    const float cw = (float) w / (float) kMaxSteps;
+    for (int l = 0; l < kNumLanes; ++l)
+    {
+        const auto stepsArr = proc.displaySteps (l);
+        const int numSteps = roundToInt (proc.apvts.getRawParameterValue (ids::lane (l, "steps"))->load());
+        const bool euclid = proc.apvts.getRawParameterValue (ids::lane (l, "euclid"))->load() >= 0.5f;
+        const bool on = proc.apvts.getRawParameterValue (ids::lane (l, "on"))->load() >= 0.5f;
+        const float y = (float) l * kRowH;
+        cachedNumSteps[l] = numSteps;
+        if (l == selectedLane) { g.setColour (colours::panelLight.withAlpha (0.5f)); g.fillRect (0.0f, y, (float) w, (float) kRowH); }
+        for (int i = 0; i < kMaxSteps; ++i)
+        {
+            const auto cell = Rectangle<float> ((float) i * cw, y, cw, (float) kRowH).reduced (2.0f, 7.0f);
+            const bool inRange = i < numSteps;
+            const int st = inRange ? stepsArr[(size_t) i] : 0;
+            cachedSteps[(size_t) l][(size_t) i] = (uint8_t) st;
+            g.setColour ((i / 4) % 2 == 0 ? colours::background : colours::background.brighter (0.06f));
+            g.fillRoundedRectangle (cell, 3.0f);
+            if (! inRange) continue;
+            if (st != 0)
+            {
+                auto c = laneColours[l];
+                if (st == 3) c = c.withAlpha (0.45f);
+                if (st == 4) c = c.withAlpha (0.7f);
+                g.setColour (on ? c : c.withAlpha (0.3f));
+                if (st == 2) g.fillRoundedRectangle (cell, 3.0f);
+                else if (st == 4) { g.drawRoundedRectangle (cell.reduced (1.0f), 3.0f, 1.5f); g.fillRoundedRectangle (cell.reduced (cell.getWidth() * 0.3f, cell.getHeight() * 0.3f), 2.0f); }
+                else g.fillRoundedRectangle (cell.reduced (0.0f, st == 3 ? 5.0f : 2.0f), 3.0f);
+            }
+            else { g.setColour (colours::outline.withAlpha (0.6f)); g.drawRoundedRectangle (cell, 3.0f, 1.0f); }
+        }
+        if (euclid) { g.setColour (colours::mod); g.setFont (LucidLookAndFeel::font (9.0f, true)); g.drawText ("EUCLID", Rectangle<int> (w - 50, (int) y + 2, 46, 12), Justification::centredRight); }
+        if (numSteps < kMaxSteps) { g.setColour (laneColours[l].withAlpha (0.5f)); g.fillRect ((float) numSteps * cw - 1.0f, y + 6.0f, 2.0f, (float) kRowH - 12.0f); }
+    }
+    contentDirty = false;
+    for (auto& s : lastPlayStep) s = -1; // force the playhead overlay to redraw against the fresh image
+}
+
+void StepGrid::resized() { contentDirty = true; background = Image(); }
+
+void StepGrid::refresh()
+{
+    const uint64_t h = computeHash();
+    if (h != lastHash) { lastHash = h; contentDirty = true; repaint(); return; }
+    // nothing structural changed: only redraw the cells the playhead entered/left, not the whole grid
+    const float cw = (float) getWidth() / (float) kMaxSteps;
+    for (int l = 0; l < kNumLanes; ++l)
+    {
+        const int cur = proc.currentStep[l].load();
+        if (cur == lastPlayStep[l]) continue;
+        if (lastPlayStep[l] >= 0) repaint (Rectangle<float> ((float) lastPlayStep[l] * cw, (float) l * kRowH, cw, (float) kRowH).getSmallestIntegerContainer());
+        if (cur >= 0) repaint (Rectangle<float> ((float) cur * cw, (float) l * kRowH, cw, (float) kRowH).getSmallestIntegerContainer());
+        lastPlayStep[l] = cur;
+    }
+}
+
 Point<int> StepGrid::cellAt (Point<float> pos) const
 {
     const float cw = (float) getWidth() / (float) kMaxSteps;
@@ -18,12 +100,13 @@ Point<int> StepGrid::cellAt (Point<float> pos) const
 void StepGrid::setCell (int lane, int idx, int state)
 {
     proc.step (proc.currentPatternIndex(), lane, idx).store ((uint8_t) state);
+    contentDirty = true;
     repaint();
 }
 void StepGrid::mouseDown (const MouseEvent& e)
 {
     const auto c = cellAt (e.position);
-    selectedLane = c.y; if (onLaneSelected) onLaneSelected (c.y);
+    if (c.y != selectedLane) { selectedLane = c.y; contentDirty = true; if (onLaneSelected) onLaneSelected (c.y); }
     if (auto* p = proc.apvts.getRawParameterValue (ids::lane (c.y, "euclid")); p != nullptr && p->load() >= 0.5f) return; // euclid lanes are generated
     const int cur = proc.getStep (proc.currentPatternIndex(), c.y, c.x);
     if (e.mods.isRightButtonDown()) paintState = 0;
@@ -46,41 +129,18 @@ void StepGrid::mouseDrag (const MouseEvent& e)
 }
 void StepGrid::paint (Graphics& g)
 {
+    if (contentDirty || ! background.isValid() || background.getWidth() != getWidth() || background.getHeight() != getHeight())
+        rebuildBackground();
+    g.drawImageAt (background, 0, 0);
     const float cw = (float) getWidth() / (float) kMaxSteps;
     for (int l = 0; l < kNumLanes; ++l)
     {
-        const auto stepsArr = proc.displaySteps (l);
-        const int numSteps = roundToInt (proc.apvts.getRawParameterValue (ids::lane (l, "steps"))->load());
-        const bool euclid = proc.apvts.getRawParameterValue (ids::lane (l, "euclid"))->load() >= 0.5f;
-        const bool on = proc.apvts.getRawParameterValue (ids::lane (l, "on"))->load() >= 0.5f;
         const int cur = proc.currentStep[l].load();
-        const float y = (float) l * kRowH;
-        if (l == selectedLane) { g.setColour (colours::panelLight.withAlpha (0.5f)); g.fillRect (0.0f, y, (float) getWidth(), (float) kRowH); }
-        for (int i = 0; i < kMaxSteps; ++i)
-        {
-            const auto cell = Rectangle<float> ((float) i * cw, y, cw, (float) kRowH).reduced (2.0f, 7.0f);
-            const bool inRange = i < numSteps;
-            const int st = inRange ? stepsArr[(size_t) i] : 0;
-            // background: beat groups
-            g.setColour ((i / 4) % 2 == 0 ? colours::background : colours::background.brighter (0.06f));
-            g.fillRoundedRectangle (cell, 3.0f);
-            if (! inRange) continue;
-            if (st != 0)
-            {
-                auto c = laneColours[l];
-                if (st == 3) c = c.withAlpha (0.45f);
-                if (st == 4) c = c.withAlpha (0.7f);
-                g.setColour (on ? c : c.withAlpha (0.3f));
-                if (st == 2) g.fillRoundedRectangle (cell, 3.0f);
-                else if (st == 4) { g.drawRoundedRectangle (cell.reduced (1.0f), 3.0f, 1.5f); g.fillRoundedRectangle (cell.reduced (cell.getWidth() * 0.3f, cell.getHeight() * 0.3f), 2.0f); }
-                else g.fillRoundedRectangle (cell.reduced (0.0f, st == 3 ? 5.0f : 2.0f), 3.0f);
-            }
-            else { g.setColour (colours::outline.withAlpha (0.6f)); g.drawRoundedRectangle (cell, 3.0f, 1.0f); }
-            if (i == cur) { g.setColour (Colours::white.withAlpha (st != 0 ? 0.35f : 0.12f)); g.fillRoundedRectangle (cell.expanded (1.0f, 3.0f), 3.0f); }
-        }
-        if (euclid) { g.setColour (colours::mod); g.setFont (LucidLookAndFeel::font (9.0f, true)); g.drawText ("EUCLID", Rectangle<int> (getWidth() - 50, (int) y + 2, 46, 12), Justification::centredRight); }
-        // lane end marker
-        if (numSteps < kMaxSteps) { g.setColour (laneColours[l].withAlpha (0.5f)); g.fillRect ((float) numSteps * cw - 1.0f, y + 6.0f, 2.0f, (float) kRowH - 12.0f); }
+        if (cur < 0 || cur >= cachedNumSteps[l]) continue;
+        const auto cell = Rectangle<float> ((float) cur * cw, (float) l * kRowH, cw, (float) kRowH).reduced (2.0f, 7.0f);
+        const bool hasNote = cachedSteps[(size_t) l][(size_t) cur] != 0;
+        g.setColour (Colours::white.withAlpha (hasNote ? 0.35f : 0.12f));
+        g.fillRoundedRectangle (cell.expanded (1.0f, 3.0f), 3.0f);
     }
 }
 
@@ -101,11 +161,34 @@ LaneStrip::LaneStrip (PulseProcessor& p, int l)
     stepsAtt = std::make_unique<AudioProcessorValueTreeState::SliderAttachment> (p.apvts, ids::lane (l, "steps"), steps);
     hitsAtt = std::make_unique<AudioProcessorValueTreeState::SliderAttachment> (p.apvts, ids::lane (l, "hits"), hits);
     rotAtt = std::make_unique<AudioProcessorValueTreeState::SliderAttachment> (p.apvts, ids::lane (l, "rot"), rot);
-    for (auto* c : std::initializer_list<Component*> { &on, &euclid, &steps, &hits, &rot, &div, &mode, &span }) addAndMakeVisible (c);
+    for (auto* c : std::initializer_list<Component*> { &on, &euclid, &steps, &hits, &rot, &div, &mode, &span, &meterButton }) addAndMakeVisible (c);
     euclidValue = p.apvts.getRawParameterValue (ids::lane (l, "euclid"));
     modeValue = p.apvts.getRawParameterValue (ids::lane (l, "mode"));
     steps.setTooltip ("Steps"); hits.setTooltip ("Euclid hits"); rot.setTooltip ("Euclid rotation");
     div.box.setTooltip ("Clock division (polymeter)"); mode.box.setTooltip ("Polymeter: own length & division. Polyrhythm: steps spread over the span."); span.box.setTooltip ("Polyrhythm span");
+    meterButton.setTooltip ("Quick meter: sets Steps + Division to a common time signature (e.g. 7/8, 5/4) in one click, so this lane can run in a different meter than the others");
+    meterButton.setColour (TextButton::buttonColourId, laneColours[l].withAlpha (0.16f));
+    meterButton.onClick = [this] { showMeterMenu(); };
+}
+void LaneStrip::showMeterMenu()
+{
+    struct MeterPreset { const char* name; int steps; };
+    static const MeterPreset presets[] = {
+        { "2/4",  8 }, { "3/4", 12 }, { "4/4", 16 }, { "5/4", 20 }, { "7/4", 28 },
+        { "3/8",  6 }, { "5/8", 10 }, { "6/8", 12 }, { "7/8", 14 }, { "9/8", 18 }, { "11/8", 22 }, { "12/8", 24 },
+    };
+    PopupMenu m;
+    m.addSectionHeader ("Set lane meter (16th-note grid)");
+    for (int i = 0; i < (int) (sizeof (presets) / sizeof (presets[0])); ++i) m.addItem (i + 1, presets[i].name);
+    m.showMenuAsync (PopupMenu::Options().withTargetComponent (meterButton), [this] (int r)
+    {
+        if (r <= 0) return;
+        const auto& pr = presets[r - 1];
+        auto setP = [this] (const String& id, float v) { if (auto* par = proc.apvts.getParameter (id)) par->setValueNotifyingHost (par->convertTo0to1 (v)); };
+        setP (ids::lane (lane, "steps"), (float) pr.steps);
+        setP (ids::lane (lane, "div"), 3.0f);   // 1/16
+        setP (ids::lane (lane, "mode"), 0.0f);  // Polymeter: this lane keeps its own length independently of the others
+    });
 }
 void LaneStrip::refresh()
 {
@@ -114,9 +197,8 @@ void LaneStrip::refresh()
     const bool poly = modeValue->load() >= 0.5f;
     div.setVisible (! poly); span.setVisible (poly);
     const int f = proc.laneFlash[lane].load();
-    if (f > 0) { proc.laneFlash[lane].store (f - 1); flash = f; }
-    else flash = 0;
-    repaint();
+    if (f > 0) proc.laneFlash[lane].store (f - 1);
+    if (f != flash) { flash = f; repaint(); }
 }
 void LaneStrip::paint (Graphics& g)
 {
@@ -132,14 +214,16 @@ void LaneStrip::resized()
     auto r = getLocalBounds();
     r.removeFromLeft (8);
     on.setBounds (r.removeFromLeft (30).withSizeKeepingCentre (30, 18));
-    r.removeFromLeft (60);
-    steps.setBounds (r.removeFromLeft (40));
-    auto combos = r.removeFromLeft (76);
+    r.removeFromLeft (52);
+    steps.setBounds (r.removeFromLeft (38));
+    meterButton.setBounds (r.removeFromLeft (30).withSizeKeepingCentre (26, 20));
+    r.removeFromLeft (2);
+    auto combos = r.removeFromLeft (70);
     mode.setBounds (combos.removeFromTop (r.getHeight() / 2).reduced (2, 1));
     div.setBounds (combos.reduced (2, 1)); span.setBounds (combos.reduced (2, 1));
-    euclid.setBounds (r.removeFromLeft (34).withSizeKeepingCentre (34, 34));
-    hits.setBounds (r.removeFromLeft (40));
-    rot.setBounds (r.removeFromLeft (40));
+    euclid.setBounds (r.removeFromLeft (32).withSizeKeepingCentre (32, 32));
+    hits.setBounds (r.removeFromLeft (38));
+    rot.setBounds (r.removeFromLeft (38));
 }
 
 // ============================================================================ LaneInspector
@@ -186,19 +270,61 @@ void LaneInspector::resized()
     else layoutRow (r, { &prob, &swing, &nudge, &ratchet, &gate, &vel, &accent, &note, &chan }, 4);
 }
 
+// ============================================================================ MidiDragHandle
+MidiDragHandle::MidiDragHandle (PulseProcessor& p) : proc (p)
+{
+    setTooltip ("Drag into a track in your DAW to create a MIDI region from the current pattern (what you hear is what you get)");
+    setMouseCursor (MouseCursor::DraggingHandCursor);
+}
+void MidiDragHandle::paint (Graphics& g)
+{
+    auto r = getLocalBounds().toFloat();
+    g.setColour (hover ? colours::mod.withAlpha (0.22f) : colours::panelLight.withAlpha (0.55f));
+    g.fillRoundedRectangle (r, 6.0f);
+    g.setColour (hover ? colours::mod : colours::outline);
+    g.drawRoundedRectangle (r.reduced (0.5f), 6.0f, 1.0f);
+    g.setColour (colours::textDim);
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 2; ++j)
+            g.fillEllipse (r.getX() + 10.0f + (float) j * 6.0f, r.getCentreY() - 7.0f + (float) i * 7.0f, 3.0f, 3.0f);
+    g.setColour (colours::text);
+    g.setFont (LucidLookAndFeel::font (11.0f, true));
+    g.drawText ("DRAG PATTERN TO DAW (MIDI)", r.withTrimmedLeft (30.0f), Justification::centredLeft);
+}
+void MidiDragHandle::mouseDown (const MouseEvent& e) { dragStart = e.position; dragging = false; }
+void MidiDragHandle::mouseDrag (const MouseEvent& e)
+{
+    if (dragging) return;
+    if (e.position.getDistanceFrom (dragStart) < 6.0f) return;
+    dragging = true;
+    auto file = proc.renderPatternToMidiFile (proc.currentPatternIndex(), bars, proc.lastKnownBpm.load());
+    if (auto* dnd = DragAndDropContainer::findParentDragContainerFor (this))
+        dnd->performExternalDragDropOfFiles ({ file.getFullPathName() }, false, this);
+}
+void MidiDragHandle::mouseUp (const MouseEvent&) { dragging = false; }
+
 // ============================================================================ Editor
 PulseEditor::PulseEditor (PulseProcessor& p)
     : AudioProcessorEditor (&p), proc (p),
       swing (p.apvts, "swing", "SWING", colours::mod), humTime (p.apvts, "humTime", "HUMAN T", colours::mod), humVel (p.apvts, "humVel", "HUMAN V", colours::mod),
       density (p.apvts, "density", "DENSITY", colours::mod), master (p.apvts, "master", "MASTER", colours::accent), busDrive (p.apvts, "busDrive", "DRIVE", colours::fx),
       busThresh (p.apvts, "busThresh", "COMP", colours::fx), busComp (p.apvts, "busComp", "COMP", colours::fx, true), busLimit (p.apvts, "busLimit", "LIMIT", colours::fx, true),
-      grid (p)
+      grid (p), dragHandle (p)
 {
     setLookAndFeel (&lnf);
     content.setSize (kBaseWidth, kBaseHeight);
     addAndMakeVisible (content);
-    for (auto* c : std::initializer_list<Component*> { &presetButton, &generateButton, &runButton, &fillButton, &syncButton, &swing, &humTime, &humVel, &density, &transportLabel, &grid })
+    for (auto* c : std::initializer_list<Component*> { &presetButton, &generateButton, &runButton, &fillButton, &syncButton, &swing, &humTime, &humVel, &density, &transportLabel, &grid, &dragHandle, &dragBarsBox })
         content.addAndMakeVisible (c);
+    dragBarsBox.addItemList ({ "1 Bar", "2 Bars", "4 Bars", "8 Bars", "16 Bars" }, 1);
+    dragBarsBox.setSelectedItemIndex (2, dontSendNotification); // 4 bars
+    dragBarsBox.setTooltip ("How many bars to render into the dragged MIDI file");
+    dragBarsBox.onChange = [this]
+    {
+        static const int bars[] = { 1, 2, 4, 8, 16 };
+        const int idx = jlimit (0, 4, dragBarsBox.getSelectedItemIndex());
+        dragHandle.bars = bars[idx];
+    };
     if (! PulseProcessor::isMidiOnlyBuild()) for (auto* c : std::initializer_list<Component*> { &master, &busDrive, &busThresh, &busComp, &busLimit }) content.addAndMakeVisible (c);
     for (int i = 0; i < kNumPatterns; ++i)
     {
@@ -229,7 +355,7 @@ PulseEditor::PulseEditor (PulseProcessor& p)
     }
     grid.onLaneSelected = [this] (int l) { selectLane (l); };
     selectLane (0);
-    proc.onPresetChanged = [this] { presetButton.setButtonText (proc.getCurrentPresetName()); updatePatternButtons(); };
+    proc.onPresetChanged = [this] { presetButton.setButtonText (proc.getCurrentPresetName()); updatePatternButtons(); grid.invalidateContent(); grid.repaint(); };
     presetButton.setButtonText (proc.getCurrentPresetName());
     updatePatternButtons();
 
@@ -245,6 +371,7 @@ void PulseEditor::selectLane (int l)
 {
     selectedLane = l; grid.selectedLane = l;
     for (int i = 0; i < kNumLanes; ++i) { inspectors[i]->setVisible (i == l); strips[i]->selected = i == l; strips[i]->repaint(); }
+    grid.invalidateContent();
     grid.repaint();
 }
 void PulseEditor::updatePatternButtons()
@@ -270,6 +397,7 @@ void PulseEditor::showPresetMenu()
         else if (r >= 100 && r < 200) proc.loadPreset (r - 100);
         else if (r == 200) proc.clearPattern (proc.currentPatternIndex());
         else if (r >= 300) proc.copyPattern (proc.currentPatternIndex(), r - 300);
+        grid.invalidateContent();
         grid.repaint();
     });
 }
@@ -279,7 +407,12 @@ void PulseEditor::showGenerateMenu()
     for (int i = 0; i < kNumStyles; ++i) m.addItem (1 + i, styleName (i));
     m.showMenuAsync (PopupMenu::Options().withTargetComponent (generateButton), [this] (int r)
     {
-        if (r > 0) { proc.generate (r - 1, (uint32_t) juce::Random::getSystemRandom().nextInt()); grid.repaint(); }
+        if (r > 0)
+        {
+            proc.generate (r - 1, (uint32_t) juce::Random::getSystemRandom().nextInt());
+            grid.invalidateContent();
+            grid.repaint();
+        }
     });
 }
 void PulseEditor::paint (Graphics& g)
@@ -313,7 +446,7 @@ void PulseEditor::paintOverChildren (Graphics& g)
     swatch (colours::accent, "Cmd/Ctrl+Click = Maybe (probability)", true);
     swatch (colours::outline, "Right-Click = Clear", true);
     g.setColour (colours::textDim);
-    g.drawText ("Polymeter: own length & clock per lane   |   Polyrhythm: N steps stretched over 1/2/4 bars   |   EUC: Euclidean hits / rotation", 20, y + 18, kBaseWidth - 40, 14, Justification::centredLeft);
+    g.drawText ("M: quick meter preset (7/8, 5/4, ...)   |   Polymeter: own length & clock per lane   |   Polyrhythm: N steps over 1/2/4 bars   |   EUC: Euclidean hits/rotation", 20, y + 18, kBaseWidth - 40, 14, Justification::centredLeft);
 }
 void PulseEditor::resized()
 {
@@ -342,11 +475,20 @@ void PulseEditor::resized()
 
     r = r.reduced (10, 0);
     auto body = r.removeFromTop (kNumLanes * StepGrid::kRowH);
-    auto stripCol = body.removeFromLeft (330);
+    auto stripCol = body.removeFromLeft (344);
     for (int l = 0; l < kNumLanes; ++l) strips[l]->setBounds (stripCol.removeFromTop (StepGrid::kRowH));
     grid.setBounds (body);
     r.removeFromTop (8);
-    for (auto& i : inspectors) i->setBounds (r.removeFromTop (110).withHeight (110));
+    // all 8 inspectors share the SAME area (only the selected lane's is visible) - assign it once,
+    // not per-lane, otherwise repeated removeFromTop() calls exhaust r and lanes 3-8 end up with a
+    // zero-height (invisible) inspector the moment they're selected.
+    auto inspectorArea = r.removeFromTop (110);
+    for (auto& i : inspectors) i->setBounds (inspectorArea);
+    r.removeFromTop (6);
+    auto dragRow = r.removeFromTop (28);
+    dragHandle.setBounds (dragRow.removeFromLeft (230));
+    dragRow.removeFromLeft (8);
+    dragBarsBox.setBounds (dragRow.removeFromLeft (90));
 }
 void PulseEditor::timerCallback()
 {
