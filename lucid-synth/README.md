@@ -72,12 +72,13 @@ Zusätzlich entstehen **VST3** (Ableton, Cubase, Bitwig, Reaper …) und eine **
 **Weg A – fertiges Plug-in herunterladen (kein Compiler nötig):**
 Jeder Push baut LUCID automatisch per GitHub Actions auf einem macOS-Runner und veröffentlicht das
 Ergebnis als Release **„lucid-latest“**: https://github.com/netteacher/h5p-rapid-timer/releases/tag/lucid-latest
-Dort `LUCID-macOS.zip` laden (ohne Login möglich), entpacken und `LUCID.component` nach
-`~/Library/Audio/Plug-Ins/Components/` kopieren.
-Weil der Download nicht notarisiert ist, einmalig die Quarantäne entfernen:
+Dort `LUCID-macOS.zip` laden (ohne Login möglich), entpacken (Doppelklick) und im Terminal:
 ```bash
-xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/LUCID.component
+bash ~/Downloads/LUCID-macOS/install-mac.sh
 ```
+Das Script entfernt die Quarantäne (der Build ist nicht notarisiert, sonst meldet macOS
+„beschädigt“), kopiert AU und VST3 in `~/Library/Audio/Plug-Ins/` und startet `auval`.
+**Nicht** auf `LUCID.component` doppelklicken – ein Plug-in ist keine App und wird nur kopiert.
 
 **Weg B – selbst bauen:** Voraussetzungen: Xcode Command Line Tools (`xcode-select --install`),
 CMake (`brew install cmake`), Internetverbindung (JUCE wird beim ersten Konfigurieren geladen).

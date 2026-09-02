@@ -33,7 +33,8 @@ jobs:
       - name: Package
         run: |
           cd build/LucidSynth_artefacts/Release
-          zip -r ../../../LUCID-macOS.zip AU/LUCID.component VST3/LUCID.vst3 Standalone/LUCID.app
+          cp "$GITHUB_WORKSPACE/lucid-synth/install-mac.sh" .
+          zip -r ../../../LUCID-macOS.zip AU/LUCID.component VST3/LUCID.vst3 Standalone/LUCID.app install-mac.sh
 
       - uses: actions/upload-artifact@v4
         with:
