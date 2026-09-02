@@ -133,6 +133,7 @@ if(LUCID_BUILD_TESTS)
         Source/ui/LookAndFeel.cpp
         Source/ui/Displays.cpp
         Source/ui/Panels.cpp
+        Source/ui/Widgets.cpp
     )
     target_include_directories(lucid_plugin_tests PRIVATE Source)
     target_compile_definitions(lucid_plugin_tests PRIVATE
