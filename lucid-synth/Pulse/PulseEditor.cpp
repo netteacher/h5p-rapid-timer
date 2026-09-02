@@ -359,13 +359,16 @@ PulseEditor::PulseEditor (PulseProcessor& p)
     presetButton.setButtonText (proc.getCurrentPresetName());
     updatePatternButtons();
 
-    // Fixed size, not resizable: a scaling Component::setTransform on the root was used earlier,
-    // but a transformed subtree forces JUCE to re-rasterise its whole cached image on every repaint
-    // inside it, and some hosts (Logic's MIDI FX chain in particular, which sizes plugin windows
-    // more aggressively than an instrument slot) can get into a resize back-and-forth with a
-    // plugin that reports itself as resizable. Both show up as exactly the flicker/redraw
-    // corruption reported for this plugin, so the window is now fixed at its native size.
-    setResizable (false, false);
+    // NOTE: an earlier attempt made this window fixed-size (no Component::setTransform scaling) to
+    // rule out a JUCE redraw quirk as the flicker's cause. That broke real Logic hosting outright -
+    // the plugin's content rendered as a single smeared, wrongly-scaled frame instead of the UI -
+    // because some hosts (confirmed: Logic) give an AU editor view a size that doesn't match what
+    // the plugin asked for, and without the compensating transform the fixed-size content gets
+    // stretched by the host itself instead of by us. So scaling is back; the flicker fix that
+    // matters is StepGrid's image caching / minimal-repaint above, which doesn't depend on this.
+    setResizable (true, true);
+    getConstrainer()->setFixedAspectRatio ((double) kBaseWidth / (double) kBaseHeight);
+    setResizeLimits (kBaseWidth / 2, kBaseHeight / 2, kBaseWidth * 2, kBaseHeight * 2);
     setSize (kBaseWidth, kBaseHeight);
     startTimerHz (30);
 }
@@ -425,6 +428,8 @@ void PulseEditor::paint (Graphics& g)
 }
 void PulseEditor::paintOverChildren (Graphics& g)
 {
+    const float scale = (float) getWidth() / (float) kBaseWidth;
+    g.addTransform (AffineTransform::scale (scale));
     // logo
     g.setFont (LucidLookAndFeel::font (22.0f, true));
     g.setGradientFill (ColourGradient (colours::accent, 20, 0, colours::mod, 160, 0, false));
@@ -452,7 +457,9 @@ void PulseEditor::paintOverChildren (Graphics& g)
 }
 void PulseEditor::resized()
 {
-    content.setBounds (0, 0, kBaseWidth, kBaseHeight); // fixed-size window, always 1:1 - see the constructor
+    const float scale = (float) getWidth() / (float) kBaseWidth;
+    content.setTransform (AffineTransform::scale (scale));
+    content.setBounds (0, 0, kBaseWidth, kBaseHeight);
     auto r = content.getLocalBounds();
     auto header = r.removeFromTop (64).reduced (10, 8);
     header.removeFromLeft (170); // logo
